@@ -1009,7 +1009,7 @@ func parseAllocateGood2(desired string) uint64 {
 	if err != nil {
 		return DefaultAllocate
 	}
-	return uint64(parsed)
+	return parsed
 }
 
 func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
@@ -1025,15 +1025,24 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 		number, _ := strconv.Atoi(log.BlockNumber)
 		// logIndex, err := hexToUint64(log.LogIndex)
 		logIndex := parseAllocateGood2(log.LogIndex)
+		var logIndex_int uint
+		if logIndex <= uint64(^uint(0)) {
+			logIndex_int = uint(logIndex)
+		}
 		// if err != nil {
 		// 	logrus.Warnf("unmarshal logIndex failed, err: %v\n", err)
 		// 	return
 		// }
-		txIndex, err := hexToUint64(log.TransactionIndex)
-		if err != nil {
-			logrus.Warnf("unmarshal TransactionIndex failed, err: %v\n", err)
-			return
+		txIndex := parseAllocateGood2(log.TransactionIndex)
+		var txIndex_int uint
+		if txIndex <= uint64(^uint(0)) {
+			txIndex_int = uint(txIndex)
 		}
+		// txIndex, err := hexToUint64(log.TransactionIndex)
+		// if err != nil {
+		// 	logrus.Warnf("unmarshal TransactionIndex failed, err: %v\n", err)
+		// 	return
+		// }
 		topics := []common.Hash{}
 		for _, topic := range log.Topics {
 			topics = append(topics, common.HexToHash(topic))
@@ -1045,9 +1054,9 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 			Data:        data,
 			BlockNumber: uint64(number),
 			TxHash:      common.HexToHash(log.TransactionHash),
-			TxIndex:     uint(txIndex),
+			TxIndex:     txIndex_int,
 			BlockHash:   common.HexToHash(log.BlockHash),
-			Index:       uint(logIndex),
+			Index:       logIndex_int,
 			Removed:     false,
 		})
 		nextBlock = uint64(number) + 1
