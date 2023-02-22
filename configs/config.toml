@@ -1,0 +1,58 @@
+[Network]
+#type rpc or channel
+Type="channel"
+CAFile="/home/jackson/fisco/nodes/127.0.0.1/sdk/ca.crt"
+Cert="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.crt"
+Key="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.key"
+#CAFile="/home/dyy/fisco/nodes/127.0.0.1/sdk/ca.crt"
+#Cert="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.crt"
+#Key="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.key"
+#CAFile="/home/dyy/generator-B/dir_sdk_ca_agencyB/sdk/ca.crt"
+#Cert="/home/dyy/generator-B/dir_sdk_ca_agencyB/sdk/sdk.crt"
+#Key="/home/dyy/generator-B/dir_sdk_ca_agencyB/sdk/sdk.key"
+# if the certificate context is not empty, use it, otherwise read from the certificate file
+# multi lines use triple quotes
+CAContext=''''''
+KeyContext=''''''
+CertContext=''''''
+
+[[Network.Connection]]
+NodeURL="127.0.0.1:20200"
+GroupID=1
+# [[Network.Connection]]
+# NodeURL="127.0.0.1:20200"
+# GroupID=2
+
+[Account]
+# only support PEM format for now
+KeyFile="/home/jackson/fisco/accounts/0xed12d39c55a4711c372431bd0dcce283083702b2.pem"
+#KeyFile="/home/dyy/fisco/accounts/0xc17f36f7b35da2a54127af463c550008491d2bfb.pem"
+
+[Chain]
+ChainID=1
+SMCrypto=false
+
+[Mysql]
+MslUrl="127.0.0.1:3306"
+MslUsername="root"
+MslPasswd="123456"
+MslName="db_node0"
+MslProtocol="tcp"
+
+[LogDB]
+LogDBUrl="127.0.0.1:3306"
+LogDBUsername="root"
+LogDBPasswd="123456"
+LogDBName="selflog_test"
+LogDBProtocol="tcp"
+
+[ChainInfoDB]
+ChainInfoUrl="127.0.0.1:3306"
+ChainInfoUsername="root"
+ChainInfoPasswd="123456"
+ChainInfoName="chaininfo_test"
+ChainInfoProtocol="tcp"
+
+
+[log]
+Path="./"
