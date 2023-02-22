@@ -51,6 +51,8 @@ const (
 	tlsConnReadDeadline = 10
 )
 
+const DefaultAllocate uint64 = 18446744073709551615
+
 type nodeInfo struct {
 	blockNumber       int64
 	Protocol          int32  `json:"protocol"`
@@ -1002,6 +1004,14 @@ func hexToUint64(s string) (uint64, error) {
 	return strconv.ParseUint(cleaned, 16, 64)
 }
 
+func parseAllocateGood2(desired string) uint64 {
+	parsed, err := strconv.ParseUint(desired, 10, 64)
+	if err != nil {
+		return DefaultAllocate
+	}
+	return uint64(parsed)
+}
+
 func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 	var eventLogResponse eventLogResponse
 	err := json.Unmarshal(msg.body, &eventLogResponse)
@@ -1013,11 +1023,12 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 	var nextBlock uint64
 	for _, log := range eventLogResponse.Logs {
 		number, _ := strconv.Atoi(log.BlockNumber)
-		logIndex, err := hexToUint64(log.LogIndex)
-		if err != nil {
-			logrus.Warnf("unmarshal logIndex failed, err: %v\n", err)
-			return
-		}
+		// logIndex, err := hexToUint64(log.LogIndex)
+		logIndex := parseAllocateGood2(log.LogIndex)
+		// if err != nil {
+		// 	logrus.Warnf("unmarshal logIndex failed, err: %v\n", err)
+		// 	return
+		// }
 		txIndex, err := hexToUint64(log.TransactionIndex)
 		if err != nil {
 			logrus.Warnf("unmarshal TransactionIndex failed, err: %v\n", err)
