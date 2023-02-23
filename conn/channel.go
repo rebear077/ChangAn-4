@@ -51,8 +51,6 @@ const (
 	tlsConnReadDeadline = 10
 )
 
-const DefaultAllocate uint64 = 18446744073709551615
-
 type nodeInfo struct {
 	blockNumber       int64
 	Protocol          int32  `json:"protocol"`
@@ -1004,12 +1002,20 @@ func hexToUint64(s string) (uint64, error) {
 	return strconv.ParseUint(cleaned, 16, 64)
 }
 
-func parseAllocateGood2(desired string) uint64 {
+const DefaultAllocate uint = 256
+
+func parseAllocateGood2(desired string) uint {
 	parsed, err := strconv.ParseUint(desired, 10, 64)
+	var parsed_int uint
 	if err != nil {
 		return DefaultAllocate
 	}
-	return parsed
+	if parsed <= uint64(^uint(0)) {
+		parsed_int = uint(parsed)
+	} else {
+		return DefaultAllocate
+	}
+	return parsed_int
 }
 
 func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
@@ -1025,19 +1031,11 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 		number, _ := strconv.Atoi(log.BlockNumber)
 		// logIndex, err := hexToUint64(log.LogIndex)
 		logIndex := parseAllocateGood2(log.LogIndex)
-		var logIndex_int uint
-		if logIndex <= uint64(^uint(0)) {
-			logIndex_int = uint(logIndex)
-		}
 		// if err != nil {
 		// 	logrus.Warnf("unmarshal logIndex failed, err: %v\n", err)
 		// 	return
 		// }
 		txIndex := parseAllocateGood2(log.TransactionIndex)
-		var txIndex_int uint
-		if txIndex <= uint64(^uint(0)) {
-			txIndex_int = uint(txIndex)
-		}
 		// txIndex, err := hexToUint64(log.TransactionIndex)
 		// if err != nil {
 		// 	logrus.Warnf("unmarshal TransactionIndex failed, err: %v\n", err)
@@ -1054,9 +1052,9 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 			Data:        data,
 			BlockNumber: uint64(number),
 			TxHash:      common.HexToHash(log.TransactionHash),
-			TxIndex:     txIndex_int,
+			TxIndex:     txIndex,
 			BlockHash:   common.HexToHash(log.BlockHash),
-			Index:       logIndex_int,
+			Index:       logIndex,
 			Removed:     false,
 		})
 		nextBlock = uint64(number) + 1
