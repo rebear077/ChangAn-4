@@ -1005,7 +1005,7 @@ func hexToUint64(s string) (uint64, error) {
 const DefaultAllocate uint = 256
 
 func parseAllocateGood2(desired string) uint {
-	parsed, err := strconv.ParseUint(desired, 10, 64)
+	parsed, err := strconv.ParseUint(desired, 10, 32)
 	var parsed_int uint
 	if err != nil {
 		return DefaultAllocate
