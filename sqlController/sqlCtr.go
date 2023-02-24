@@ -44,14 +44,14 @@ func NewSqlCtr() *SqlCtr {
 	str := config.MslUsername + ":" + config.MslPasswd + "@/" + config.MslName
 	db, err := sql.Open("mysql", str)
 	if err != nil {
-		// logrus.Fatalln(err)
+		fmt.Println("err.Error()", err.Error())
 		logs.Fatalln(err)
 	}
 
 	str1 := config.LogDBUsername + ":" + config.LogDBPasswd + "@/" + config.LogDBName
 	logdb, err := sql.Open("mysql", str1)
 	if err != nil {
-		// logrus.Fatalln(err)
+		fmt.Println("err.Error()", err.Error())
 		logs.Fatalln(err)
 	}
 

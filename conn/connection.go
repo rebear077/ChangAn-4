@@ -245,6 +245,7 @@ func (c *Connection) CallContext(ctx context.Context, result interface{}, method
 	if c.isHTTP {
 		err = c.sendHTTP(ctx, op, msg)
 	} else {
+
 		err = c.sendRPCRequest(ctx, op, msg)
 	}
 	if err != nil {
@@ -270,10 +271,12 @@ func (c *Connection) AsyncSendTransaction(ctx context.Context, handler func(*typ
 	if err != nil {
 		return err
 	}
+
 	hc := c.writeConn.(*channelSession)
 	if !c.isHTTP {
 		err = hc.asyncSendTransaction(msg, handler)
 	}
+
 	if err != nil {
 		return err
 	}

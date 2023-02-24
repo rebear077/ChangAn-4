@@ -390,6 +390,7 @@ func (c *Connection) sendRPCRequest(ctx context.Context, op *requestOp, msg inte
 	hc := c.writeConn.(*channelSession)
 	rpcMsg := msg.(*jsonrpcMessage)
 	if rpcMsg.Method == "sendRawTransaction" {
+
 		respBody, err := hc.sendTransaction(ctx, msg)
 		if err != nil {
 			return fmt.Errorf("sendTransaction failed, %v", err)
@@ -398,7 +399,9 @@ func (c *Connection) sendRPCRequest(ctx context.Context, op *requestOp, msg inte
 		rpcResp.Result = respBody
 		op.resp <- rpcResp
 	} else {
+
 		respBody, err := hc.doRPCRequest(ctx, msg)
+
 		if respBody != nil {
 			defer respBody.Close()
 		}
@@ -439,7 +442,9 @@ func (c *Connection) sendBatchChannel(ctx context.Context, op *requestOp, msgs [
 }
 
 func (hc *channelSession) doRPCRequest(ctx context.Context, msg interface{}) (io.ReadCloser, error) {
+	fmt.Println("dorpcRequest")
 	body, err := json.Marshal(msg)
+	fmt.Println(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -449,22 +454,28 @@ func (hc *channelSession) doRPCRequest(ctx context.Context, msg interface{}) (io
 		return nil, err
 	}
 	msgBytes := rpcMsg.Encode()
+	fmt.Println("发送的时候uuid是", rpcMsg.uuid, "...................................")
+
+	response := &channelResponse{Message: nil, Notify: make(chan interface{})}
+	hc.mu.Lock()
+	hc.responses[rpcMsg.uuid] = response
+	hc.mu.Unlock()
 	if hc.c == nil {
+		fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 		return nil, errors.New("connection unavailable")
 	}
 	_, err = hc.c.Write(msgBytes)
 	if err != nil {
 		return nil, err
 	}
-	response := &channelResponse{Message: nil, Notify: make(chan interface{})}
-	hc.mu.Lock()
-	hc.responses[rpcMsg.uuid] = response
-	hc.mu.Unlock()
-	<-response.Notify
+
+	res := <-response.Notify
+	fmt.Println("do rpc", res)
 	hc.mu.Lock()
 	response = hc.responses[rpcMsg.uuid]
 	delete(hc.responses, rpcMsg.uuid)
 	hc.mu.Unlock()
+
 	if response.Err != nil {
 		return nil, response.Err
 	}
@@ -475,6 +486,7 @@ func (hc *channelSession) doRPCRequest(ctx context.Context, msg interface{}) (io
 }
 
 func (hc *channelSession) sendTransaction(ctx context.Context, msg interface{}) ([]byte, error) {
+
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err
@@ -537,10 +549,12 @@ func (hc *channelSession) sendTransaction(ctx context.Context, msg interface{}) 
 }
 
 func (hc *channelSession) asyncSendTransaction(msg interface{}, handler func(*types.Receipt, error)) error {
+	fmt.Println("asyncSendTransaction")
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
+
 	var rpcMsg *channelMessage
 	rpcMsg, err = newChannelMessage(rpcMessage, body)
 	if err != nil {
@@ -564,12 +578,13 @@ func (hc *channelSession) asyncSendTransaction(msg interface{}, handler func(*ty
 	if hc.c == nil {
 		return errors.New("connection unavailable")
 	}
+
 	_, err = hc.c.Write(msgBytes)
 	if err != nil {
 		return err
 	}
 	<-response.Notify
-
+	// fmt.Println("asyncSendTransaction chan", res)
 	hc.mu.Lock()
 	response = hc.responses[rpcMsg.uuid]
 	hc.mu.Unlock()
@@ -602,6 +617,7 @@ func (hc *channelSession) sendMessageNoResponse(msg *channelMessage) error {
 }
 
 func (hc *channelSession) sendMessage(msg *channelMessage) (*channelMessage, error) {
+	// fmt.Println("sendMessage")
 	msgBytes := msg.Encode()
 	response := &channelResponse{Message: nil, Notify: make(chan interface{})}
 	hc.mu.Lock()
@@ -622,6 +638,7 @@ func (hc *channelSession) sendMessage(msg *channelMessage) (*channelMessage, err
 		hc.mu.Unlock()
 	}()
 	<-response.Notify
+	// fmt.Println("send message", res)
 	hc.mu.Lock()
 	response = hc.responses[msg.uuid]
 	hc.mu.Unlock()
@@ -1005,7 +1022,7 @@ func hexToUint64(s string) (uint64, error) {
 const DefaultAllocate uint = 256
 
 func parseAllocateGood2(desired string) uint {
-	parsed, err := strconv.ParseUint(desired, 10, 32)
+	parsed, err := strconv.ParseUint(desired, 10, 64)
 	var parsed_int uint
 	if err != nil {
 		return DefaultAllocate
@@ -1029,18 +1046,18 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 	var nextBlock uint64
 	for _, log := range eventLogResponse.Logs {
 		number, _ := strconv.Atoi(log.BlockNumber)
-		// logIndex, err := hexToUint64(log.LogIndex)
-		logIndex := parseAllocateGood2(log.LogIndex)
-		// if err != nil {
-		// 	logrus.Warnf("unmarshal logIndex failed, err: %v\n", err)
-		// 	return
-		// }
-		txIndex := parseAllocateGood2(log.TransactionIndex)
-		// txIndex, err := hexToUint64(log.TransactionIndex)
-		// if err != nil {
-		// 	logrus.Warnf("unmarshal TransactionIndex failed, err: %v\n", err)
-		// 	return
-		// }
+		logIndex, err := hexToUint64(log.LogIndex)
+		// logIndex := parseAllocateGood2(log.LogIndex)
+		if err != nil {
+			logrus.Warnf("unmarshal logIndex failed, err: %v\n", err)
+			return
+		}
+		// txIndex := parseAllocateGood2(log.TransactionIndex)
+		txIndex, err := hexToUint64(log.TransactionIndex)
+		if err != nil {
+			logrus.Warnf("unmarshal TransactionIndex failed, err: %v\n", err)
+			return
+		}
 		topics := []common.Hash{}
 		for _, topic := range log.Topics {
 			topics = append(topics, common.HexToHash(topic))
@@ -1052,9 +1069,9 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 			Data:        data,
 			BlockNumber: uint64(number),
 			TxHash:      common.HexToHash(log.TransactionHash),
-			TxIndex:     txIndex,
+			TxIndex:     uint(txIndex),
 			BlockHash:   common.HexToHash(log.BlockHash),
-			Index:       logIndex,
+			Index:       uint(logIndex),
 			Removed:     false,
 		})
 		nextBlock = uint64(number) + 1
@@ -1073,9 +1090,11 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 
 // processMessages process incoming messages from the node
 func (hc *channelSession) processMessages() {
+	fmt.Println("processMessage")
 	for {
 		select {
 		case <-hc.closed:
+			fmt.Println("hc.closed监听************************************************")
 			// delete old network
 			_ = hc.c.Close()
 			hc.c = nil
@@ -1127,8 +1146,10 @@ func (hc *channelSession) processMessages() {
 				return
 			}
 		case <-hc.heartBeat.C:
+			fmt.Println("hc.heartBeat.C-------------------------------------")
 			hc.sendHeartbeatMsg()
 		default:
+			// fmt.Println("default+++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 			receiveBuf := make([]byte, 4096)
 			hc.c.SetReadDeadline(time.Now().Add(tlsConnReadDeadline * time.Second))
 			b, err := hc.c.Read(receiveBuf)
@@ -1149,13 +1170,20 @@ func (hc *channelSession) processMessages() {
 			hc.buf = hc.buf[msg.length:]
 			// TODO: move notify into switch
 			hc.mu.Lock()
+			fmt.Println(msg.typeN)
 			if response, ok := hc.responses[msg.uuid]; ok {
+				fmt.Println("接受的uuid是", msg.uuid, "----------------------------------------------------")
 				response.Message = msg
 				if response.Notify != nil {
 					response.Notify <- struct{}{}
 					close(response.Notify)
+				} else {
+					fmt.Println("bad bad ..................................")
 				}
 				response.Notify = nil
+			} else {
+				fmt.Println("特殊情况uuid", msg.uuid)
+				fmt.Println("special condition .......................................")
 			}
 			hc.mu.Unlock()
 			switch msg.typeN {

@@ -1,15 +1,16 @@
 package promote
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	server "github.com/rebear077/changan/backend"
-	chainloader "github.com/rebear077/changan/chaininfos"
 	receive "github.com/rebear077/changan/connApi"
 	"github.com/rebear077/changan/errorhandle"
 	logloader "github.com/rebear077/changan/logs"
 	uptoChain "github.com/rebear077/changan/tochain"
+	"github.com/sirupsen/logrus"
 )
 
 var logs = logloader.NewLog()
@@ -17,45 +18,40 @@ var logs = logloader.NewLog()
 type Promoter struct {
 	server        *server.Server
 	DataApi       *receive.FrontEnd
-	monitor       *server.Monitor
 	encryptedPool *Pools
 	loader        *logloader.Loader
-	chaininfo     *chainloader.ChainInfo
 }
 
 func NewPromoter() *Promoter {
 	ser := server.NewServer()
 	api := receive.NewFrontEnd()
-	monitor := server.NewMonitor()
 	pool := NewPools()
 	lder := logloader.NewLoader()
-	chainld := chainloader.NewChainInfo()
+	// chainld := chainloader.NewChainInfo()
 	return &Promoter{
 		server:        ser,
 		DataApi:       api,
-		monitor:       monitor,
 		encryptedPool: pool,
 		loader:        lder,
-		chaininfo:     chainld,
 	}
 }
 
 func (p *Promoter) Start() {
 	go p.loader.Start()
-	go p.chaininfo.Start()
+	go p.server.StartMonitor()
 	logs.Infoln("开始运行")
-	go p.monitor.Start()
 	for {
-		if p.monitor.VerifyChainStatus() {
+		if p.server.VerifyChainstatus() {
 			p.InvoiceInfoHandler()
 			p.SupplierFinancingApplicationInfoHandler()
 			p.HistoricalInfoHandler()
 			p.PushPaymentAccountsInfoHandler()
 			p.PoolInfoHandler()
 		} else {
-			time.Sleep(5 * time.Second)
+			time.Sleep(10 * time.Second)
 		}
 	}
+
 }
 
 func (p *Promoter) InvoiceInfoHandler() {
@@ -360,7 +356,7 @@ func (p *Promoter) SupplierFinancingApplicationInfoHandler() {
 
 func (p *Promoter) PushPaymentAccountsInfoHandler() {
 	if len(p.DataApi.CollectionAccountPool) != 0 {
-		// logrus.Infoln("开始同步回款信息")
+		logrus.Infoln("开始同步回款信息")
 		logs.Infoln("开始同步回款信息")
 		var wg sync.WaitGroup
 		payinfos := make([]*receive.CollectionAccount, 0)
@@ -369,6 +365,7 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 		p.DataApi.CollectionAccountPool = nil
 		p.DataApi.CollectionAccountmutex.Unlock()
 		mapping := server.EncodeCollectionAccount(payinfos)
+		fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 		for index := range mapping {
 			for header, info := range mapping[index] {
 				wg.Add(1)
@@ -381,15 +378,23 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 			}
 		}
 		wg.Wait()
+		fmt.Println("dddddddddddddddddddddddddddddddd")
 		messages := p.encryptedPool.QueryMessages("payment", "fast")
-		for _, message := range messages {
-			temp, _ := message.(packedMessage)
+		fmt.Println(len(messages))
+		for index, message := range messages {
+			fmt.Println(index)
+			temp, ok := message.(packedMessage)
+			if !ok {
+				fmt.Println("errorerror")
+			}
+
 			err := p.server.IssuePushPaymentAccount(temp.header, temp.cipher, temp.encryptionKey, temp.signed)
 			if err != nil {
 				// logrus.Errorln("回款信息上链失败,", "失败信息为:", err)
 				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
 			}
 		}
+		fmt.Println("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj")
 		for {
 			errNum := errorhandle.ERRDealer.GetPushPaymentAccountPoolLength()
 			success := uptoChain.QueryPaymentAccountsCounter()

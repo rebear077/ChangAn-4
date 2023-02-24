@@ -4,14 +4,16 @@
 package smartcontract
 
 import (
+	
 	"math/big"
 	"strings"
+
+	ethereum "ethereum/go-ethereum"
+	"ethereum/go-ethereum/common"
 
 	"github.com/rebear077/changan/abi"
 	"github.com/rebear077/changan/abi/bind"
 	"github.com/rebear077/changan/core/types"
-	ethereum "ethereum/go-ethereum"
-	"ethereum/go-ethereum/common"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -535,6 +537,7 @@ func (_HostFactoryController *HostFactoryControllerSession) IssuePushPaymentAcco
 }
 
 func (_HostFactoryController *HostFactoryControllerSession) AsyncIssuePushPaymentAccounts(handler func(*types.Receipt, error), _id string, _data string, _key string, _hash string) (*types.Transaction, error) {
+	
 	return _HostFactoryController.Contract.AsyncIssuePushPaymentAccounts(handler, &_HostFactoryController.TransactOpts, _id, _data, _key, _hash)
 }
 

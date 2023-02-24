@@ -30,6 +30,7 @@ import (
 	"ethereum/go-ethereum/common"
 	"ethereum/go-ethereum/common/hexutil"
 	"ethereum/go-ethereum/rlp"
+
 	"github.com/rebear077/changan/conn"
 	"github.com/rebear077/changan/core/types"
 	"github.com/sirupsen/logrus"
@@ -168,7 +169,9 @@ func (api *APIHandler) AsyncSendRawTransaction(ctx context.Context, groupID int,
 		logrus.Printf("rlp encode tx error, err: %v", err)
 		return err
 	}
+
 	if api.IsHTTP() {
+
 		err = api.CallContext(ctx, nil, "sendRawTransaction", groupID, hexutil.Encode(data))
 		if err != nil {
 			return nil
@@ -324,9 +327,11 @@ func (api *APIHandler) GetBlockLimit(ctx context.Context, groupID int) (*big.Int
 			return blockLimit, nil
 		}
 	}
+
 	defaultNumber := big.NewInt(BlockLimit)
 	var raw hexutil.Big
 	err := api.CallContext(ctx, &raw, "getBlockNumber", groupID)
+
 	if err != nil {
 		return nil, err
 	}

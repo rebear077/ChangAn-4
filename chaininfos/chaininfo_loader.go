@@ -26,6 +26,10 @@ type ChainData struct {
 	Info      string
 }
 
+func init() {
+	NewChainInfo()
+}
+
 // 生成log数据库对象
 func NewChainInfo() *ChainInfo {
 	// db, err := sql.Open("mysql", "root:123456@/db_node0")
@@ -34,7 +38,7 @@ func NewChainInfo() *ChainInfo {
 	//之后写在配置文件里
 	str := "root" + ":" + "123456" + "@/" + "chaininfo_test" + "?allowAllFiles=true"
 	db, err := sql.Open("mysql", str)
-
+	createTable(db)
 	var pathstring []string
 
 	currentTime := time.Now() //开始运行时间
@@ -61,6 +65,13 @@ func (c *ChainInfo) Start() {
 		if len(c.infopath) >= 2 {
 			c.InsertLogs()
 		}
+	}
+}
+
+func createTable(db *sql.DB) {
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS `u_t_chaininfo`( `id` INT NOT NULL AUTO_INCREMENT, `timestamp` varchar(1000), `type` varchar(100) not null, `info` varchar(1000) not null,  primary key (`id`) )ENGINE=InnoDB DEFAULT CHARSET=utf8;")
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 

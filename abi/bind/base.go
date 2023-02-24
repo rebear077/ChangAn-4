@@ -26,6 +26,7 @@ import (
 
 	"ethereum/go-ethereum"
 	"ethereum/go-ethereum/common"
+
 	"github.com/rebear077/changan/abi"
 	"github.com/rebear077/changan/core/types"
 )
@@ -206,7 +207,9 @@ func (c *BoundContract) Transact(opts *TransactOpts, method string, params ...in
 
 func (c *BoundContract) AsyncTransact(opts *TransactOpts, handler func(*types.Receipt, error), method string, params ...interface{}) (*types.Transaction, error) {
 	// Otherwise pack up the parameters and invoke the contract
+
 	input, err := c.abi.Pack(method, params...)
+
 	if err != nil {
 		return nil, err
 	}
@@ -234,13 +237,16 @@ func (c *BoundContract) transact(opts *TransactOpts, contract *common.Address, i
 }
 
 func (c *BoundContract) asyncTransact(opts *TransactOpts, contract *common.Address, input []byte, handler func(*types.Receipt, error)) (*types.Transaction, error) {
+
 	signedTx, err := c.generateSignedTx(opts, contract, input)
 	if err != nil {
 		return nil, err
 	}
+
 	if err = c.transactor.AsyncSendTransaction(ensureContext(opts.Context), signedTx, handler); err != nil {
 		return nil, err
 	}
+
 	return signedTx, nil
 }
 
@@ -251,6 +257,7 @@ func (c *BoundContract) generateSignedTx(opts *TransactOpts, contract *common.Ad
 	if value == nil {
 		value = new(big.Int)
 	}
+
 	// generate random Nonce between 0 - 2^250 - 1
 	max := new(big.Int)
 	max.Exp(big.NewInt(2), big.NewInt(250), nil).Sub(max, big.NewInt(1))
@@ -284,6 +291,7 @@ func (c *BoundContract) generateSignedTx(opts *TransactOpts, contract *common.Ad
 
 	var blockLimit *big.Int
 	blockLimit, err = c.transactor.GetBlockLimit(ensureContext(opts.Context))
+
 	if err != nil {
 		return nil, err
 	}
@@ -295,6 +303,7 @@ func (c *BoundContract) generateSignedTx(opts *TransactOpts, contract *common.Ad
 	}
 
 	var groupID *big.Int
+
 	groupID = c.transactor.GetGroupID()
 	if groupID == nil {
 		return nil, fmt.Errorf("failed to get the group ID")

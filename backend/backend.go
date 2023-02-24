@@ -45,6 +45,12 @@ func NewServer() *Server {
 		priKey:   prikey,
 	}
 }
+func (s *Server) StartMonitor() {
+	s.ctr.Start()
+}
+func (s *Server) VerifyChainstatus() bool {
+	return s.ctr.VerifyChainStatus()
+}
 func (s *Server) DeployContract() string {
 	res := s.ctr.DeployContract()
 	return res
@@ -195,6 +201,7 @@ func (s *Server) IssueSupplierFinancingApplication(id string, cipher []byte, enc
 
 // 回款信息
 func (s *Server) IssuePushPaymentAccount(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
+
 	err := s.ctr.IssuePushPaymentAccounts(id, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err

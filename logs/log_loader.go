@@ -33,7 +33,7 @@ func NewLoader() *Loader {
 	//之后写在配置文件里
 	str := "root" + ":" + "123456" + "@/" + "log_test" + "?allowAllFiles=true"
 	db, err := sql.Open("mysql", str)
-
+	createTable(db)
 	var pathstring []string
 
 	currentTime := time.Now() //开始运行时间
@@ -43,12 +43,20 @@ func NewLoader() *Loader {
 
 	pathstring = append(pathstring, TimeStringFormatter(currentTime))
 	if err != nil {
+		fmt.Println(2)
 		logrus.Fatalln(err)
 	}
 	return &Loader{
 		sql:         db,
 		logpath:     pathstring,
 		currentTime: currentTime,
+	}
+}
+
+func createTable(db *sql.DB) {
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS `u_t_log`( `log_id` INT NOT NULL AUTO_INCREMENT, `timestamp` varchar(1000), `type` varchar(100) not null, `info` varchar(1000) not null,  primary key (`log_id`) )ENGINE=InnoDB DEFAULT CHARSET=utf8;")
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
