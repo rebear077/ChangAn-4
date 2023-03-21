@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ethereum/go-ethereum/common"
+
 	"github.com/rebear077/changan/client"
 	"github.com/rebear077/changan/conf"
 	smartcontract "github.com/rebear077/changan/contract"
@@ -53,14 +54,14 @@ func (c *testController) deployContract() string {
 
 	return address.Hex()
 }
-func (c *testController) IssueInvoiceInformation(contractAddr string, id string, data string, key string, hash string) (bool, error) {
+func (c *testController) IssueInvoiceInformation(contractAddr string, id string, timeandtype string, data string, key string, hash string) (bool, error) {
 	contractAddress := common.HexToAddress(contractAddr)
 	instance, err := smartcontract.NewHostFactoryController(contractAddress, c.conn)
 	if err != nil {
 		return false, err
 	}
 	HostFactoryControllerSession := &smartcontract.HostFactoryControllerSession{Contract: instance, CallOpts: *c.conn.GetCallOpts(), TransactOpts: *c.conn.GetTransactOpts()}
-	_, err = HostFactoryControllerSession.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, data, key, hash)
+	_, err = HostFactoryControllerSession.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, timeandtype, data, key, hash)
 	if err != nil {
 		return false, err
 	}
@@ -73,7 +74,7 @@ func TestDeployContract(t *testing.T) {
 }
 func TestIssueInvoiceInfo(t *testing.T) {
 	ctr := newController()
-	contractAddress := common.HexToAddress("0x80eE403dDa29f0cD04ae4f794326f73b5F53D3b6")
+	contractAddress := common.HexToAddress("0x8cf400be91bbf4e9dccd232d77ebbb5510681dcf")
 	instance, err := smartcontract.NewHostFactoryController(contractAddress, ctr.conn)
 	if err != nil {
 		panic(err)
@@ -90,13 +91,13 @@ func TestIssueInvoiceInfo(t *testing.T) {
 	HostFactoryControllerSession := &smartcontract.HostFactoryControllerSession{Contract: instance, CallOpts: *ctr.conn.GetCallOpts(), TransactOpts: *ctr.conn.GetTransactOpts()}
 	start := time.Now()
 	fmt.Println(start)
-	for index := 0; index < 100; index++ {
+	for index := 0; index < 1; index++ {
 		// ctr.IssueInvoiceInformation("0xCa6C5Bd02a0b4da0aD7cC62DcD10796930781a18", "xxx", "xxxxxxxxxxxxxxxxxxxxxxxx", "xxxxxxxxxxxxxxxxxxxxxxx", "xxxxxxxxxxxxxxxxxxxxx")
 		HostFactoryControllerSession.AsyncIssueHistoricalUsedInformation(invokeIssueHistoricalUsedInformationHandler, "xxx", "xxxxxxxxxxxxxxxxxxxxxxxx", "xxxxxxxxxxxxxxxxxxxxxxx", "xxxxxxxxxxxxxxxxxxxxx", "xxxxxxx")
 	}
 
 	for {
-		if QueryHistoricalUsedCounter() == 100 {
+		if QueryHistoricalUsedCounter() == 1 {
 			end := time.Now()
 			fmt.Println(end)
 			dura := end.Sub(start).Seconds()

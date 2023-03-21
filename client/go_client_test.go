@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"ethereum/go-ethereum/common"
+
 	"github.com/rebear077/changan/abi"
 	"github.com/rebear077/changan/abi/bind"
 	"github.com/rebear077/changan/conf"
@@ -26,7 +27,7 @@ func GetClient(t *testing.T) *Client {
 		t.Fatalf("decode hex failed of %v", err)
 	}
 	config := &conf.Config{IsHTTP: true, ChainID: 1, IsSMCrypto: false, GroupID: 1,
-		PrivateKey: privateKey, NodeURL: "http://localhost:8545"}
+		PrivateKey: privateKey, NodeURL: "http://localhost:8548"}
 	c, err := Dial(config)
 	if err != nil {
 		t.Fatalf("Dial to %s failed of %v", config.NodeURL, err)
@@ -170,14 +171,28 @@ func TestObserverList(t *testing.T) {
 	t.Logf("observer list:\n%s", ol)
 }
 
+// func TestConsensusStatus(t *testing.T) {
+// 	c := GetClient(t)
+// 	status, err := c.GetConsensusStatus(context.Background())
+// 	if err != nil {
+// 		t.Fatalf("consensus status not found: %v", err)
+// 	}
+
+// 	t.Logf("consensus status:\n%s", status)
+// }
+
 func TestConsensusStatus(t *testing.T) {
 	c := GetClient(t)
+
 	status, err := c.GetConsensusStatus(context.Background())
 	if err != nil {
 		t.Fatalf("consensus status not found: %v", err)
 	}
-
-	t.Logf("consensus status:\n%s", status)
+	res := strings.Split(string(status), "},[")
+	// temp := "[" + res[1]
+	temp := "[" + res[0]
+	fmt.Println(strings.Count(temp, "nodeId"))
+	t.Logf("consensus  status:\n%s", status)
 }
 
 func TestSyncStatus(t *testing.T) {

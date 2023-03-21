@@ -442,9 +442,9 @@ func (c *Connection) sendBatchChannel(ctx context.Context, op *requestOp, msgs [
 }
 
 func (hc *channelSession) doRPCRequest(ctx context.Context, msg interface{}) (io.ReadCloser, error) {
-	fmt.Println("dorpcRequest")
+	// fmt.Println("dorpcRequest")
 	body, err := json.Marshal(msg)
-	fmt.Println(msg)
+	// fmt.Println(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -454,14 +454,14 @@ func (hc *channelSession) doRPCRequest(ctx context.Context, msg interface{}) (io
 		return nil, err
 	}
 	msgBytes := rpcMsg.Encode()
-	fmt.Println("发送的时候uuid是", rpcMsg.uuid, "...................................")
+	// fmt.Println("发送的时候uuid是", rpcMsg.uuid, "...................................")
 
 	response := &channelResponse{Message: nil, Notify: make(chan interface{})}
 	hc.mu.Lock()
 	hc.responses[rpcMsg.uuid] = response
 	hc.mu.Unlock()
 	if hc.c == nil {
-		fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+		fmt.Println("check in do rpc")
 		return nil, errors.New("connection unavailable")
 	}
 	_, err = hc.c.Write(msgBytes)
@@ -469,8 +469,8 @@ func (hc *channelSession) doRPCRequest(ctx context.Context, msg interface{}) (io
 		return nil, err
 	}
 
-	res := <-response.Notify
-	fmt.Println("do rpc", res)
+	<-response.Notify
+	// fmt.Println("do rpc", res)
 	hc.mu.Lock()
 	response = hc.responses[rpcMsg.uuid]
 	delete(hc.responses, rpcMsg.uuid)
@@ -510,6 +510,7 @@ func (hc *channelSession) sendTransaction(ctx context.Context, msg interface{}) 
 	}()
 	msgBytes := rpcMsg.Encode()
 	if hc.c == nil {
+		fmt.Println("check in SendTransaction")
 		return nil, errors.New("connection unavailable")
 	}
 	_, err = hc.c.Write(msgBytes)
@@ -549,7 +550,6 @@ func (hc *channelSession) sendTransaction(ctx context.Context, msg interface{}) 
 }
 
 func (hc *channelSession) asyncSendTransaction(msg interface{}, handler func(*types.Receipt, error)) error {
-	fmt.Println("asyncSendTransaction")
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -576,6 +576,7 @@ func (hc *channelSession) asyncSendTransaction(msg interface{}, handler func(*ty
 	}()
 	msgBytes := rpcMsg.Encode()
 	if hc.c == nil {
+		fmt.Println("check in asyncSendTransaction")
 		return errors.New("connection unavailable")
 	}
 
@@ -607,6 +608,7 @@ func (hc *channelSession) asyncSendTransaction(msg interface{}, handler func(*ty
 func (hc *channelSession) sendMessageNoResponse(msg *channelMessage) error {
 	msgBytes := msg.Encode()
 	if hc.c == nil {
+		fmt.Println("check in sendMessageNoResponse")
 		return errors.New("connection unavailable")
 	}
 	_, err := hc.c.Write(msgBytes)
@@ -624,6 +626,7 @@ func (hc *channelSession) sendMessage(msg *channelMessage) (*channelMessage, err
 	hc.responses[msg.uuid] = response
 	hc.mu.Unlock()
 	if hc.c == nil {
+		fmt.Println("check in sendMessage")
 		return nil, errors.New("connection unavailable")
 	}
 	hc.connMu.Lock()
@@ -1090,12 +1093,10 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 
 // processMessages process incoming messages from the node
 func (hc *channelSession) processMessages() {
-	fmt.Println("processMessage")
+	// fmt.Println("processMessage")
 	for {
 		select {
 		case <-hc.closed:
-			fmt.Println("hc.closed监听************************************************")
-			// delete old network
 			_ = hc.c.Close()
 			hc.c = nil
 			// return err for responses and receiptResponses
@@ -1146,10 +1147,8 @@ func (hc *channelSession) processMessages() {
 				return
 			}
 		case <-hc.heartBeat.C:
-			fmt.Println("hc.heartBeat.C-------------------------------------")
 			hc.sendHeartbeatMsg()
 		default:
-			// fmt.Println("default+++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 			receiveBuf := make([]byte, 4096)
 			hc.c.SetReadDeadline(time.Now().Add(tlsConnReadDeadline * time.Second))
 			b, err := hc.c.Read(receiveBuf)
@@ -1170,20 +1169,13 @@ func (hc *channelSession) processMessages() {
 			hc.buf = hc.buf[msg.length:]
 			// TODO: move notify into switch
 			hc.mu.Lock()
-			fmt.Println(msg.typeN)
 			if response, ok := hc.responses[msg.uuid]; ok {
-				fmt.Println("接受的uuid是", msg.uuid, "----------------------------------------------------")
 				response.Message = msg
 				if response.Notify != nil {
 					response.Notify <- struct{}{}
 					close(response.Notify)
-				} else {
-					fmt.Println("bad bad ..................................")
 				}
 				response.Notify = nil
-			} else {
-				fmt.Println("特殊情况uuid", msg.uuid)
-				fmt.Println("special condition .......................................")
 			}
 			hc.mu.Unlock()
 			switch msg.typeN {

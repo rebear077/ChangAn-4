@@ -1,25 +1,21 @@
 package uptoChain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/big"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"ethereum/go-ethereum/common"
 
 	"github.com/rebear077/changan/abi"
-	chaininfos "github.com/rebear077/changan/chaininfos"
 	"github.com/rebear077/changan/client"
 	"github.com/rebear077/changan/conf"
 	smartcontract "github.com/rebear077/changan/contract"
 	logloader "github.com/rebear077/changan/logs"
 	sql "github.com/rebear077/changan/sqlController"
-	"github.com/sirupsen/logrus"
 )
 
 var Logs = logloader.NewLog()
@@ -28,7 +24,6 @@ type Controller struct {
 	conn      *client.Client
 	session   *smartcontract.HostFactoryControllerSession
 	log       *sql.SqlCtr
-	chaininfo *logrus.Logger
 	pendingTX []byte
 }
 
@@ -76,12 +71,10 @@ func NewController() *Controller {
 	}
 	hostFactoryControllerSession := &smartcontract.HostFactoryControllerSession{Contract: instance, CallOpts: *client.GetCallOpts(), TransactOpts: *client.GetTransactOpts()}
 
-	chainld := chaininfos.NewChainlog()
 	return &Controller{
-		conn:      client,
-		session:   hostFactoryControllerSession,
-		log:       sql.NewSqlCtr(),
-		chaininfo: chainld,
+		conn:    client,
+		session: hostFactoryControllerSession,
+		log:     sql.NewSqlCtr(),
 	}
 }
 
@@ -149,10 +142,10 @@ func (c *Controller) IssueSupplierFinancingApplication(id string, data string, k
 }
 
 // 上传发票信息
-func (c *Controller) IssueInvoiceInformation(id string, data string, key string, hash string) error {
+func (c *Controller) IssueInvoiceInformation(id string, timeandtype string, data string, key string, hash string) error {
 	// fmt.Println("key: ", []byte(key))
 	// fmt.Println("hash: ", hash)
-	_, err := c.session.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, data, key, hash)
+	_, err := c.session.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, timeandtype, data, key, hash)
 	if err != nil {
 		return err
 	}
@@ -160,8 +153,8 @@ func (c *Controller) IssueInvoiceInformation(id string, data string, key string,
 }
 
 // 历史交易信息之入库信息
-func (c *Controller) IssueHistoricalUsedInformation(id string, time string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalUsedInformation(invokeIssueHistoricalUsedInformationHandler, id, time, data, key, hash)
+func (c *Controller) IssueHistoricalUsedInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
+	_, err := c.session.AsyncIssueHistoricalUsedInformation(invokeIssueHistoricalUsedInformationHandler, id, tradeYearMonth, data, key, hash)
 	if err != nil {
 		return err
 	}
@@ -169,8 +162,8 @@ func (c *Controller) IssueHistoricalUsedInformation(id string, time string, data
 }
 
 // 历史交易信息之结算信息
-func (c *Controller) IssueHistoricalSettleInformation(id string, time string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalSettleInformation(invokeIssueHistoricalSettleInformationHandler, id, time, data, key, hash)
+func (c *Controller) IssueHistoricalSettleInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
+	_, err := c.session.AsyncIssueHistoricalSettleInformation(invokeIssueHistoricalSettleInformationHandler, id, tradeYearMonth, data, key, hash)
 	if err != nil {
 		return err
 	}
@@ -178,8 +171,8 @@ func (c *Controller) IssueHistoricalSettleInformation(id string, time string, da
 }
 
 // 历史交易信息之订单信息
-func (c *Controller) IssueHistoricalOrderInformation(id string, time string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalOrderInformation(invokeIssueHistoricalOrderInformationHandler, id, time, data, key, hash)
+func (c *Controller) IssueHistoricalOrderInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
+	_, err := c.session.AsyncIssueHistoricalOrderInformation(invokeIssueHistoricalOrderInformationHandler, id, tradeYearMonth, data, key, hash)
 	if err != nil {
 		return err
 	}
@@ -187,8 +180,8 @@ func (c *Controller) IssueHistoricalOrderInformation(id string, time string, dat
 }
 
 // 历史交易信息之应收账款信息
-func (c *Controller) IssueHistoricalReceivableInformation(id string, time string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalReceivableInformation(invokeIssueHistoricalReceivableInformationHandler, id, time, data, key, hash)
+func (c *Controller) IssueHistoricalReceivableInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
+	_, err := c.session.AsyncIssueHistoricalReceivableInformation(invokeIssueHistoricalReceivableInformationHandler, id, tradeYearMonth, data, key, hash)
 	if err != nil {
 		return err
 	}
@@ -221,63 +214,4 @@ func (c *Controller) IssuePoolUsedInformation(id string, time string, data strin
 		return err
 	}
 	return nil
-}
-func (c *Controller) VerifyChainStatus() bool {
-	if string(c.pendingTX) != "0x0" {
-		return true
-	} else {
-		return false
-	}
-}
-func (c *Controller) Start() {
-	for {
-		ticker1 := time.NewTicker(2 * time.Second)
-		ctx, cancle := context.WithCancel(context.Background())
-		go c.getInfor(ctx)
-		select {
-		case <-ticker1.C:
-			cancle()
-		}
-	}
-
-}
-func (c *Controller) getInfor(ctx context.Context) {
-	ticker := time.NewTicker(2 * time.Second)
-	select {
-	case <-ctx.Done():
-		return
-	case <-ticker.C:
-		chainID, err := c.conn.GetChainID(context.Background())
-		if err != nil {
-			// logrus.Errorln("监控器获取链ID失败:", err)
-			c.chaininfo.Error("监控器获取链ID失败:", err)
-		}
-		// logrus.Infoln("区块链ID:", chainID)
-		c.chaininfo.Infoln("区块链ID:", chainID)
-		txCount, err := c.conn.GetTotalTransactionCount(context.Background())
-		if err != nil {
-			logrus.Errorln(err)
-		}
-		txNum, err := strconv.ParseInt(txCount.TxSum[2:], 16, 64)
-		if err != nil {
-			// logrus.Errorln("监控器获取区块链高度失败:", err)
-			c.chaininfo.Errorln("监控器获取区块链高度失败:", err)
-		}
-		// logrus.Infoln("交易数量:", txNum)
-		c.chaininfo.Infoln("交易数量:", txNum)
-		pendingSize, err := c.conn.GetPendingTxSize(context.Background())
-		if err != nil {
-			// logrus.Errorln("监控器获取未上链交易数量失败:", err)
-			c.chaininfo.Errorln("监控器获取未上链交易数量失败:", err)
-		}
-		pending, err := strconv.ParseInt(string(pendingSize)[3:len(pendingSize)-1], 16, 64)
-		if err != nil {
-			// logrus.Errorln("监控器获取未上链交易数量失败:", err)
-			c.chaininfo.Errorln("监控器获取未上链交易数量失败:", err)
-		}
-		// logrus.Infof("交易池中未上链交易数量:%d\n", pending)
-		c.chaininfo.Infof("交易池中未上链交易数量:%d", pending)
-		c.pendingTX = pendingSize
-
-	}
 }

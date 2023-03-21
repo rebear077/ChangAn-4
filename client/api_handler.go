@@ -383,7 +383,7 @@ func (api *APIHandler) GetConsensusStatus(ctx context.Context, groupID int) ([]b
 	if err != nil {
 		return nil, err
 	}
-	js, err := json.MarshalIndent(raw, "", indent)
+	js, err := json.Marshal(raw)
 	return js, err
 }
 

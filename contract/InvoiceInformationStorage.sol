@@ -9,19 +9,27 @@ contract InvoiceInformationStorage is Ownable {
     using LibString for string;
     MapStorage private mapStorage;
     TableFactory tf;
-    string constant TABLE_NAME = "t_invoice_information";
+    string constant TABLE_NAME = "t_invoice_information1";
     // 表名称：t_invoice_information
     // 表主键：id 
     // 表字段：data
     // 字段含义：
     constructor() public {
         tf = TableFactory(0x1001);
-        tf.createTable(TABLE_NAME, "id","data,key,hash");
+        tf.createTable(TABLE_NAME, "id","time,type,num,data,key,hash");
         mapStorage = new MapStorage();
     }
-    function insert(string memory _id, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    function insert(string memory _id, string memory _params, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+        //time和type作为一个字段传入，以逗号为分割
+        string[] memory ss = _params.split(",");
+        string memory _time = ss[0];
+        string memory _type = ss[1];
+        string memory _num = ss[2];
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
+        entry.set("time",_time);
+        entry.set("type",_type);
+        entry.set("num",_num);
         entry.set("data",_data);
         entry.set("key",_key);
         entry.set("hash",_hash);
@@ -53,6 +61,12 @@ contract InvoiceInformationStorage is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("[");
+            _json = _json.concat(_entry.getString("time"));
+            _json = _json.concat(",");
+            _json = _json.concat(_entry.getString("type"));
+            _json = _json.concat(",");
+            _json = _json.concat(_entry.getString("num"));
+            _json = _json.concat(",");
             _json = _json.concat(_entry.getString("data"));
             _json = _json.concat(",");
             _json = _json.concat(_entry.getString("key"));
@@ -69,6 +83,15 @@ contract InvoiceInformationStorage is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("{");
+            _json=_json.concat("\"time\":\"");
+            _json = _json.concat(_entry.getString("time"));
+            _json = _json.concat("\",");
+            _json=_json.concat("\"type\":\"");
+            _json = _json.concat(_entry.getString("type"));
+            _json = _json.concat("\",");
+            _json=_json.concat("\"num\":\"");
+            _json = _json.concat(_entry.getString("num"));
+            _json = _json.concat("\"}");
             _json=_json.concat("\"data\":\"");
             _json = _json.concat(_entry.getString("data"));
             _json = _json.concat("\",");
@@ -85,5 +108,4 @@ contract InvoiceInformationStorage is Ownable {
         _json=_json.concat("]");
         return _json;
     }
-  
 }

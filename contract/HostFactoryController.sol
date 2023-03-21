@@ -66,8 +66,8 @@ contract HostFactoryController is Ownable{
     }
 //*****************************************************************************************************
 //发票信息  
-    function issueInvoiceInformationStorage(string _id, string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = invoiceInformationStorage.insert(_id, _data,_key,_hash);
+    function issueInvoiceInformationStorage(string _id,  string _params, string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = invoiceInformationStorage.insert(_id, _params, _data,_key,_hash);
       
         return count;
     }
@@ -81,8 +81,8 @@ contract HostFactoryController is Ownable{
     }
 //*******************************************************************************************************    
 //历史交易信息之入库信息
-    function issueHistoricalUsedInformation(string _id, string _time,string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = historyUsedInfo.insert(_id,_time,_data,_key,_hash);
+    function issueHistoricalUsedInformation(string _id, string __tradeYearMonth,string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = historyUsedInfo.insert(_id,__tradeYearMonth,_data,_key,_hash);
         return count;
     }
     function queryHIstoricalUsedInList(string _id)public returns(string){
@@ -95,8 +95,8 @@ contract HostFactoryController is Ownable{
     }
 //*******************************************************************************************************    
 //历史交易信息之订单信息
-    function issueHistoricalOrderInformation(string _id, string _time,string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = historyOrderInfo.insert(_id,_time,_data,_key,_hash);
+    function issueHistoricalOrderInformation(string _id, string __tradeYearMonth,string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = historyOrderInfo.insert(_id,__tradeYearMonth,_data,_key,_hash);
         return count;
     }
     function queryHIstoricalOrderInList(string _id)public returns(string){
@@ -109,8 +109,8 @@ contract HostFactoryController is Ownable{
     }
 //*******************************************************************************************************    
 //历史交易信息之结算信息
-    function issueHistoricalSettleInformation(string _id, string _time,string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = historySettleInfo.insert(_id,_time,_data,_key,_hash);
+    function issueHistoricalSettleInformation(string _id, string __tradeYearMonth,string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = historySettleInfo.insert(_id,__tradeYearMonth,_data,_key,_hash);
         return count;
     }
     function queryHIstoricalSettleInList(string _id)public returns(string){
@@ -123,8 +123,8 @@ contract HostFactoryController is Ownable{
     }
 //*******************************************************************************************************    
 //历史交易信息之应收账款信息
-    function issueHistoricalReceivableInformation(string _id, string _time,string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = historyReceivableInfo.insert(_id,_time,_data,_key,_hash);
+    function issueHistoricalReceivableInformation(string _id, string __tradeYearMonth,string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = historyReceivableInfo.insert(_id,__tradeYearMonth,_data,_key,_hash);
         return count;
     }
     function queryHIstoricalReceivableInList(string _id)public returns(string){

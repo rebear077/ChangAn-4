@@ -9,16 +9,16 @@ contract HistoryUsedInfo is Ownable {
     using LibString for string;
     MapStorage private mapStorage;
     TableFactory tf;
-    string constant TABLE_NAME = "t_history_used_information";
+    string constant TABLE_NAME = "t_history_used_information1";
     constructor() public {
         tf = TableFactory(0x1001);
-        tf.createTable(TABLE_NAME, "id","time,data,key,hash");
+        tf.createTable(TABLE_NAME, "id","tradeYearMonth,data,key,hash");
         mapStorage = new MapStorage();
     }
-    function insert(string memory _id,string memory _time, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    function insert(string memory _id,string memory _tradeYearMonth, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
-        entry.set("time",_time);
+        entry.set("tradeYearMonth",_tradeYearMonth);
         entry.set("data",_data);
         entry.set("key",_key);
         entry.set("hash",_hash);
@@ -50,7 +50,7 @@ contract HistoryUsedInfo is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("[");
-            _json = _json.concat(_entry.getString("time"));
+            _json = _json.concat(_entry.getString("tradeYearMonth"));
             _json = _json.concat(",");
             _json = _json.concat(_entry.getString("data"));
             _json = _json.concat(",");
@@ -68,8 +68,8 @@ contract HistoryUsedInfo is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("{");
-            _json=_json.concat("\"time\":\"");
-            _json = _json.concat(_entry.getString("time"));
+            _json=_json.concat("\"tradeYearMonth\":\"");
+            _json = _json.concat(_entry.getString("tradeYearMonth"));
             _json = _json.concat("\",");
             _json=_json.concat("\"data\":\"");
             _json = _json.concat(_entry.getString("data"));

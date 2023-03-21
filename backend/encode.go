@@ -22,7 +22,7 @@ func EncodeTransactionHistory(list []*receive.TransactionHistory) map[int]map[st
 	mapping := make(map[int]map[string]string)
 	for index, l := range list {
 		mapping[index] = make(map[string]string)
-		header := l.Certificateid
+		header := l.Customerid
 		baseStr := l.Customergrade + "," + l.Certificatetype + "," + l.Intercustomerid + "," + l.Corpname + "," + l.Financeid + "," + l.Certificateid + "," + l.Customerid
 		var usedinfos string
 		usedinfos = "["
@@ -73,7 +73,7 @@ func EncodeEnterpoolData(list []*receive.EnterpoolData) map[int]map[string]strin
 	mapping := make(map[int]map[string]string)
 	for index, l := range list {
 		mapping[index] = make(map[string]string)
-		header := l.Datetimepoint
+		header := l.Customerid
 		baseStr := l.Datetimepoint + "," + l.Ccy + "," + l.Customerid + "," + l.Intercustomerid + "," + l.Receivablebalance
 		var planinfos string
 		planinfos = "["
@@ -123,7 +123,7 @@ func EncodeCollectionAccount(list []*receive.CollectionAccount) map[int]map[stri
 		for _, l := range *v {
 			index += 1
 			mapping[index] = make(map[string]string)
-			header := l.Corpname
+			header := l.Customerid
 			tempStr := l.Backaccount + "," + l.Certificateid + "," + l.Customerid + "," + l.Corpname + "," + l.Lockremark + "," + l.Certificatetype + "," + l.Intercustomerid
 			mapping[index][header] = tempStr
 		}

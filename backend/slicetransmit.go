@@ -35,7 +35,6 @@ func HistoricalInformationSlice(key string, value string, baselength int) ([]str
 			temp = "["
 		}
 	}
-	// fmt.Println("usedinfos: ", usedinfos)
 
 	//结算信息
 	temp = "["
@@ -57,7 +56,6 @@ func HistoricalInformationSlice(key string, value string, baselength int) ([]str
 			temp = "["
 		}
 	}
-	// fmt.Println("settleinfos: ", settleinfos)
 	//订单信息
 
 	temp = "["
@@ -108,10 +106,8 @@ func HistoricalInformationSlice(key string, value string, baselength int) ([]str
 
 func PoolInformationSlice(key string, value string, baselength int) ([]string, []string) {
 	splitvalue := jsonsplit.SplitEnterpoolDataPool(value)
-	// fmt.Println("splitvalue: ", splitvalue)
 	//头部信息
 	hisheader := splitvalue.Datetimepoint + "," + splitvalue.Ccy + "," + splitvalue.Customerid + "," + splitvalue.Intercustomerid + "," + splitvalue.Receivablebalance + ","
-	//fmt.Println("hisheader: ", hisheader)
 	var temp string
 	//入库信息
 	temp = "["

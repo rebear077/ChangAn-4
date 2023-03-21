@@ -4,6 +4,9 @@ Type="channel"
 CAFile="/home/jackson/fisco/nodes/127.0.0.1/sdk/ca.crt"
 Cert="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.crt"
 Key="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.key"
+#CAFile="/home/jackson/fisco/nodes/10.128.222.225/sdk/ca.crt"
+#Cert="/home/jackson/fisco/nodes/10.128.222.225/sdk/sdk.crt"
+#Key="/home/jackson/fisco/nodes/10.128.222.225/sdk/sdk.key"
 #CAFile="/home/dyy/fisco/nodes/127.0.0.1/sdk/ca.crt"
 #Cert="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.crt"
 #Key="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.key"
@@ -17,7 +20,7 @@ KeyContext=''''''
 CertContext=''''''
 
 [[Network.Connection]]
-NodeURL="127.0.0.1:20200"
+NodeURL="127.0.0.1:20210"
 GroupID=1
 # [[Network.Connection]]
 # NodeURL="127.0.0.1:20200"

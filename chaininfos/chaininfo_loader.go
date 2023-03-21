@@ -26,9 +26,9 @@ type ChainData struct {
 	Info      string
 }
 
-func init() {
-	NewChainInfo()
-}
+// func init() {
+// 	NewChainInfo()
+// }
 
 // 生成log数据库对象
 func NewChainInfo() *ChainInfo {
@@ -129,7 +129,7 @@ func (c *ChainInfo) InsertLogs() error {
 	for i := 0; i < len(c.infopath)-1; i++ {
 		path := "output.log" + "." + c.infopath[i]
 		// fmt.Println("chaininfo path: ", path)
-		_, err := c.db.Exec("load data local infile '/home/jackson/ChangAn-1/chaininfos/chaininfo_files/" + path + "' into table u_t_chaininfo CHARACTER SET utf8 fields terminated by '|' lines terminated by '\n'")
+		_, err := c.db.Exec("load data local infile '/home/jackson/ChangAn-3/chaininfos/chaininfo_files/" + path + "' into table u_t_chaininfo CHARACTER SET utf8 fields terminated by '|' lines terminated by '\n'")
 		if err != nil {
 			fmt.Println(err)
 			// return err

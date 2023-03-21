@@ -45,12 +45,6 @@ func NewServer() *Server {
 		priKey:   prikey,
 	}
 }
-func (s *Server) StartMonitor() {
-	s.ctr.Start()
-}
-func (s *Server) VerifyChainstatus() bool {
-	return s.ctr.VerifyChainStatus()
-}
 func (s *Server) DeployContract() string {
 	res := s.ctr.DeployContract()
 	return res
@@ -120,8 +114,8 @@ func (s *Server) DataEncryption(data []byte) ([]byte, []byte, []byte, error) {
 }
 
 // 发票信息
-func (s *Server) IssueInvoiceInformation(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueInvoiceInformation(id, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueInvoiceInformation(id string, timeandtype string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssueInvoiceInformation(id, timeandtype, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -130,8 +124,8 @@ func (s *Server) IssueInvoiceInformation(id string, cipher []byte, encryptionKey
 }
 
 // 历史交易信息之入库信息
-func (s *Server) IssueHistoricalUsedInformation(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalUsedInformation(id, time.Now().String()[0:19], string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalUsedInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssueHistoricalUsedInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -140,8 +134,8 @@ func (s *Server) IssueHistoricalUsedInformation(id string, cipher []byte, encryp
 }
 
 // 历史交易信息之结算信息
-func (s *Server) IssueHistoricalSettleInformation(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalSettleInformation(id, time.Now().String()[0:19], string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalSettleInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssueHistoricalSettleInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -150,8 +144,8 @@ func (s *Server) IssueHistoricalSettleInformation(id string, cipher []byte, encr
 }
 
 // 历史交易信息之订单信息
-func (s *Server) IssueHistoricalOrderInformation(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalOrderInformation(id, time.Now().String()[0:19], string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalOrderInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssueHistoricalOrderInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -160,8 +154,8 @@ func (s *Server) IssueHistoricalOrderInformation(id string, cipher []byte, encry
 }
 
 // 历史交易信息之应收账款信息
-func (s *Server) IssueHistoricalReceivableInformation(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalReceivableInformation(id, time.Now().String()[0:19], string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalReceivableInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssueHistoricalReceivableInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -170,8 +164,8 @@ func (s *Server) IssueHistoricalReceivableInformation(id string, cipher []byte, 
 }
 
 // 入池数据之供应商生产计划信息
-func (s *Server) IssuePoolPlanInformation(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssuePoolPlanInformation(id, time.Now().String()[0:19], string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssuePoolPlanInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssuePoolPlanInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -180,8 +174,8 @@ func (s *Server) IssuePoolPlanInformation(id string, cipher []byte, encryptionKe
 }
 
 // 入池数据之供应商生产入库信息
-func (s *Server) IssuePoolUsedInformation(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssuePoolUsedInformation(id, time.Now().String()[0:19], string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssuePoolUsedInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssuePoolUsedInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -201,7 +195,6 @@ func (s *Server) IssueSupplierFinancingApplication(id string, cipher []byte, enc
 
 // 回款信息
 func (s *Server) IssuePushPaymentAccount(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-
 	err := s.ctr.IssuePushPaymentAccounts(id, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err

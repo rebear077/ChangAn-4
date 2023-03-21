@@ -28,6 +28,30 @@ type packedMessage struct {
 	signed        []byte
 }
 
+//特别针对发票信息的Message结构体
+type packedInvoiceMessage struct {
+	header        string
+	params        string
+	cipher        []byte
+	encryptionKey []byte
+	signed        []byte
+}
+
+type packedHistoricalMessage struct {
+	header         string
+	tradeYearMonth string
+	cipher         []byte
+	encryptionKey  []byte
+	signed         []byte
+}
+type packedPoolMessage struct {
+	header         string
+	tradeYearMonth string
+	cipher         []byte
+	encryptionKey  []byte
+	signed         []byte
+}
+
 func NewPools() *Pools {
 	fast := newEncryptedPool()
 	slow := newPendingPool()
@@ -50,6 +74,51 @@ func (p *Pools) Insert(packed packedMessage, name string, poolType string) {
 		panic("池子类型错误")
 	}
 }
+
+//特别针对发票信息的Insert函数
+func (p *Pools) InsertInvoice(packed packedInvoiceMessage, name string, poolType string) {
+	if !verify(name) {
+		panic("指定方法名称错误")
+	}
+	if poolType == "fast" {
+		p.fastPool.insertInvoiceMessage(packed, name)
+
+	} else if poolType == "slow" {
+		p.slowPool.insertInvoiceMessage(packed, name)
+
+	} else {
+		panic("池子类型错误")
+	}
+}
+func (p *Pools) InsertHistoricalTrans(packed packedHistoricalMessage, name string, poolType string) {
+	if !verify(name) {
+		panic("指定方法名称错误")
+	}
+	if poolType == "fast" {
+		p.fastPool.insertHistoricalMessage(packed, name)
+
+	} else if poolType == "slow" {
+		p.slowPool.insertHistoricalMessage(packed, name)
+
+	} else {
+		panic("池子类型错误")
+	}
+}
+func (p *Pools) InsertPoolData(packed packedPoolMessage, name string, poolType string) {
+	if !verify(name) {
+		panic("指定方法名称错误")
+	}
+	if poolType == "fast" {
+		p.fastPool.insertPoolMessage(packed, name)
+
+	} else if poolType == "slow" {
+		p.slowPool.insertPoolMessage(packed, name)
+
+	} else {
+		panic("池子类型错误")
+	}
+}
+
 func (p *Pools) Delete(name string, poolType string) {
 	if !verify(name) {
 		panic("指定方法名称错误")
@@ -118,6 +187,23 @@ func (e *encryptedPool) insertMessage(packed packedMessage, name string) {
 	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
 	e.encryptedMessageMutex.Unlock()
 }
+
+//特别针对发票信息的insertMessage
+func (e *encryptedPool) insertInvoiceMessage(packed packedInvoiceMessage, name string) {
+	e.encryptedMessageMutex.Lock()
+	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
+	e.encryptedMessageMutex.Unlock()
+}
+func (e *encryptedPool) insertHistoricalMessage(packed packedHistoricalMessage, name string) {
+	e.encryptedMessageMutex.Lock()
+	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
+	e.encryptedMessageMutex.Unlock()
+}
+func (e *encryptedPool) insertPoolMessage(packed packedPoolMessage, name string) {
+	e.encryptedMessageMutex.Lock()
+	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
+	e.encryptedMessageMutex.Unlock()
+}
 func (e *encryptedPool) deleteMessage(name string) {
 	e.encryptedMessageMutex.Lock()
 	e.encryptedMessage[name] = nil
@@ -137,6 +223,23 @@ func (e *encryptedPool) queryMessage(name string) []interface{} {
 	return temp
 }
 func (p *pendingPool) insertMessage(packed packedMessage, name string) {
+	p.pendingPoolMutex.Lock()
+	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
+	p.pendingPoolMutex.Unlock()
+}
+
+//特别针对发票信息的insertMessage
+func (p *pendingPool) insertInvoiceMessage(packed packedInvoiceMessage, name string) {
+	p.pendingPoolMutex.Lock()
+	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
+	p.pendingPoolMutex.Unlock()
+}
+func (p *pendingPool) insertHistoricalMessage(packed packedHistoricalMessage, name string) {
+	p.pendingPoolMutex.Lock()
+	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
+	p.pendingPoolMutex.Unlock()
+}
+func (p *pendingPool) insertPoolMessage(packed packedPoolMessage, name string) {
 	p.pendingPoolMutex.Lock()
 	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
 	p.pendingPoolMutex.Unlock()
