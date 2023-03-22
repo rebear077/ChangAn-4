@@ -1,0 +1,3 @@
+2|[2023-03-22 21:30:10]|[fatal]|[parse private key failed, err: open /home/dyy/fisco/accounts/0xc17f36f7b35da2a54127af463c550008491d2bfb.pem: no such file or directory]
+2|[2023-03-22 21:30:22]|[fatal]|[parse private key failed, err: open /home/dyy/fisco/accounts/0xc17f36f7b35da2a54127af463c550008491d2bfb.pem: no such file or directory]
+2|[2023-03-22 21:30:41]|[fatal]|[parse private key failed, err: open /home/dyy/fisco/accounts/0xc17f36f7b35da2a54127af463c550008491d2bfb.pem: no such file or directory]
