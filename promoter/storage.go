@@ -28,6 +28,14 @@ type packedMessage struct {
 	signed        []byte
 }
 
+type packedFinancingMessage struct {
+	header        string
+	financingid   string
+	cipher        []byte
+	encryptionKey []byte
+	signed        []byte
+}
+
 //特别针对发票信息的Message结构体
 type packedInvoiceMessage struct {
 	header        string
@@ -85,6 +93,21 @@ func (p *Pools) InsertInvoice(packed packedInvoiceMessage, name string, poolType
 
 	} else if poolType == "slow" {
 		p.slowPool.insertInvoiceMessage(packed, name)
+
+	} else {
+		panic("池子类型错误")
+	}
+}
+
+func (p *Pools) InsertFinancing(packed packedFinancingMessage, name string, poolType string) {
+	if !verify(name) {
+		panic("指定方法名称错误")
+	}
+	if poolType == "fast" {
+		p.fastPool.insertFinancingMessage(packed, name)
+
+	} else if poolType == "slow" {
+		p.slowPool.insertFinancingMessage(packed, name)
 
 	} else {
 		panic("池子类型错误")
@@ -194,6 +217,11 @@ func (e *encryptedPool) insertInvoiceMessage(packed packedInvoiceMessage, name s
 	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
 	e.encryptedMessageMutex.Unlock()
 }
+func (e *encryptedPool) insertFinancingMessage(packed packedFinancingMessage, name string) {
+	e.encryptedMessageMutex.Lock()
+	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
+	e.encryptedMessageMutex.Unlock()
+}
 func (e *encryptedPool) insertHistoricalMessage(packed packedHistoricalMessage, name string) {
 	e.encryptedMessageMutex.Lock()
 	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
@@ -230,6 +258,11 @@ func (p *pendingPool) insertMessage(packed packedMessage, name string) {
 
 //特别针对发票信息的insertMessage
 func (p *pendingPool) insertInvoiceMessage(packed packedInvoiceMessage, name string) {
+	p.pendingPoolMutex.Lock()
+	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
+	p.pendingPoolMutex.Unlock()
+}
+func (p *pendingPool) insertFinancingMessage(packed packedFinancingMessage, name string) {
 	p.pendingPoolMutex.Lock()
 	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
 	p.pendingPoolMutex.Unlock()

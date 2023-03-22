@@ -9,19 +9,20 @@ contract SupplierFinancingApplication is Ownable {
     MapStorage private mapStorage;
     using LibString for string;
     TableFactory tf;
-    string constant TABLE_NAME = "t_supplier_financing_application";
+    string constant TABLE_NAME = "t_supplier_financing_application1";
     // 表名称：t_supplier_financing_application
     // 表主键：id 
     // 表字段：data
     // 字段含义：
     constructor() public {
         tf = TableFactory(0x1001);
-        tf.createTable(TABLE_NAME, "id","data,key,hash");
+        tf.createTable(TABLE_NAME, "id","financingid,data,key,hash");
         mapStorage = new MapStorage();
     }
-    function insert(string memory _id, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    function insert(string memory _id, string memory _financingid, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
+        entry.set("financingid",_financingid);
         entry.set("data",_data);
         entry.set("key",_key);
         entry.set("hash",_hash);
@@ -53,6 +54,8 @@ contract SupplierFinancingApplication is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("[");
+            _json = _json.concat(_entry.getString("financingid"));
+            _json = _json.concat(",");
             _json = _json.concat(_entry.getString("data"));
             _json = _json.concat(",");
             _json = _json.concat(_entry.getString("key"));
@@ -69,6 +72,9 @@ contract SupplierFinancingApplication is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("{");
+            _json=_json.concat("\"financingid\":\"");
+            _json = _json.concat(_entry.getString("financingid"));
+            _json = _json.concat("\",");
             _json=_json.concat("\"data\":\"");
             _json = _json.concat(_entry.getString("data"));
             _json = _json.concat("\",");

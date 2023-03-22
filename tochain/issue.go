@@ -133,8 +133,8 @@ func (c *Controller) IssuePublicKeyStorage(id string, role string, key string) (
 }
 
 // 上传融资意向请求
-func (c *Controller) IssueSupplierFinancingApplication(id string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, data, key, hash)
+func (c *Controller) IssueSupplierFinancingApplication(id string, financingid string, data string, key string, hash string) error {
+	_, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, financingid, data, key, hash)
 	if err != nil {
 		return err
 	}

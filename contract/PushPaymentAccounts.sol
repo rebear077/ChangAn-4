@@ -9,7 +9,7 @@ contract PushPaymentAccounts is Ownable {
     using LibString for string;
     MapStorage private mapStorage;
     TableFactory tf;
-    string constant TABLE_NAME = "t_push_payment_accounts";
+    string constant TABLE_NAME = "t_push_payment_accounts1";
     // 表名称：t_push_payment_accounts
     // 表主键：id 
     // 表字段：data
