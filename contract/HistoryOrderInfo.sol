@@ -31,7 +31,7 @@ contract HistoryOrderInfo is Ownable {
     }
     function select(string memory _id) private view returns(Entries _entries){
         Table table = tf.openTable(TABLE_NAME);
-        require(_isProcessIdExist(table, _id), "HistoryUsedInfo select: current processId not exist");
+        require(_isProcessIdExist(table, _id), "HistoryOrderInfo select: current processId not exist");
         Condition condition = table.newCondition();
         _entries = table.select(_id, condition);
         return _entries;

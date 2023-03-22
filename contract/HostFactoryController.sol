@@ -49,8 +49,8 @@ contract HostFactoryController is Ownable{
     }  
 //***************************************************************************************************    
 //融资意向    
-    function issueSupplierFinancingApplication(string _id, string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = supplierFinancingApplication.insert(_id, _data,_key,_hash);
+    function issueSupplierFinancingApplication(string _id, string _financingid, string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = supplierFinancingApplication.insert(_id, _financingid, _data,_key,_hash);
         
         return count;
     }

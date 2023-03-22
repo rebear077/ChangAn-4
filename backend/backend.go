@@ -184,8 +184,8 @@ func (s *Server) IssuePoolUsedInformation(id string, tradeYearMonth string, ciph
 }
 
 // 上传融资意向请求
-func (s *Server) IssueSupplierFinancingApplication(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueSupplierFinancingApplication(id, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueSupplierFinancingApplication(id string, financingid string, cipher []byte, encryptionKey []byte, signed []byte) error {
+	err := s.ctr.IssueSupplierFinancingApplication(id, financingid, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {

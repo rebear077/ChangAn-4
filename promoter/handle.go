@@ -324,7 +324,7 @@ func (p *Promoter) SupplierFinancingApplicationInfoHandler() {
 				tempheader := header
 				tempinfo := info
 				go func(tempheader string, tempinfo string) {
-					p.packInfo(tempheader, tempinfo, "fast", "application")
+					p.packFinancingInfo(tempheader, tempinfo, "fast", "application")
 					wg.Done()
 				}(tempheader, tempinfo)
 			}
@@ -332,8 +332,8 @@ func (p *Promoter) SupplierFinancingApplicationInfoHandler() {
 		wg.Wait()
 		messages := p.encryptedPool.QueryMessages("application", "fast")
 		for _, message := range messages {
-			temp, _ := message.(packedMessage)
-			err := p.server.IssueSupplierFinancingApplication(temp.header, temp.cipher, temp.encryptionKey, temp.signed)
+			temp, _ := message.(packedFinancingMessage)
+			err := p.server.IssueSupplierFinancingApplication(temp.header, temp.financingid, temp.cipher, temp.encryptionKey, temp.signed)
 			if err != nil {
 				// logrus.Errorln("融资意向请求上链失败,", "失败信息为:", err)
 				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
@@ -432,6 +432,22 @@ func (p *Promoter) packInvoiceInfo(header string, info string, poolType string, 
 	temp.signed = signed
 	temp.header = header
 	p.encryptedPool.InsertInvoice(temp, method, poolType)
+}
+
+func (p *Promoter) packFinancingInfo(header string, info string, poolType string, method string) {
+	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
+	if err != nil {
+		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
+		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
+	}
+	temp := packedFinancingMessage{}
+	fields := strings.Split(info, ",")
+	temp.financingid = fields[9]
+	temp.cipher = cipher
+	temp.encryptionKey = encryptionKey
+	temp.signed = signed
+	temp.header = header
+	p.encryptedPool.InsertFinancing(temp, method, poolType)
 }
 
 //针对历史交易信息的packInfo
