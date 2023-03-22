@@ -108,7 +108,7 @@ func EncodeFinancingIntention(list []*receive.FinancingIntention) map[int]map[st
 		for _, l := range *v {
 			index += 1
 			mapping[index] = make(map[string]string)
-			header := l.Financeid
+			header := l.Customerid
 			tempStr := l.Custcdlinkposition + "," + l.Custcdlinkname + "," + l.Certificateid + "," + l.Corpname + "," + l.Remark + "," + l.Bankcontact + "," + l.Banklinkname + "," + l.Custcdcontact + "," + l.Customerid + "," + l.Financeid + "," + l.Cooperationyears + "," + l.Certificatetype + "," + l.Intercustomerid
 			mapping[index][header] = tempStr
 		}
