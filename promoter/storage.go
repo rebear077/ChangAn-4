@@ -46,11 +46,11 @@ type packedInvoiceMessage struct {
 }
 
 type packedHistoricalMessage struct {
-	header         string
-	tradeYearMonth string
-	cipher         []byte
-	encryptionKey  []byte
-	signed         []byte
+	header                     string
+	tradeYearMonthandfinanceId string
+	cipher                     []byte
+	encryptionKey              []byte
+	signed                     []byte
 }
 type packedPoolMessage struct {
 	header         string

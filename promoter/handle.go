@@ -141,28 +141,28 @@ func (p *Promoter) HistoricalInfoHandler() {
 		hisReceivableMessage := p.encryptedPool.QueryMessages("historicalReceivable", "fast")
 		for _, message := range hisUsedMessage {
 			tempUsed, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalUsedInformation(tempUsed.header, tempUsed.tradeYearMonth, tempUsed.cipher, tempUsed.encryptionKey, tempUsed.signed)
+			err := p.server.IssueHistoricalUsedInformation(tempUsed.header, tempUsed.tradeYearMonthandfinanceId, tempUsed.cipher, tempUsed.encryptionKey, tempUsed.signed)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempUsed.header, "失败信息为:", err)
 			}
 		}
 		for _, message := range hisSettleMessage {
 			tempSettle, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalSettleInformation(tempSettle.header, tempSettle.tradeYearMonth, tempSettle.cipher, tempSettle.encryptionKey, tempSettle.signed)
+			err := p.server.IssueHistoricalSettleInformation(tempSettle.header, tempSettle.tradeYearMonthandfinanceId, tempSettle.cipher, tempSettle.encryptionKey, tempSettle.signed)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempSettle.header, "失败信息为:", err)
 			}
 		}
 		for _, message := range hisOrderMessage {
 			tempOrder, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalOrderInformation(tempOrder.header, tempOrder.tradeYearMonth, tempOrder.cipher, tempOrder.encryptionKey, tempOrder.signed)
+			err := p.server.IssueHistoricalOrderInformation(tempOrder.header, tempOrder.tradeYearMonthandfinanceId, tempOrder.cipher, tempOrder.encryptionKey, tempOrder.signed)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempOrder.header, "失败信息为:", err)
 			}
 		}
 		for _, message := range hisReceivableMessage {
 			tempReceivable, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalReceivableInformation(tempReceivable.header, tempReceivable.tradeYearMonth, tempReceivable.cipher, tempReceivable.encryptionKey, tempReceivable.signed)
+			err := p.server.IssueHistoricalReceivableInformation(tempReceivable.header, tempReceivable.tradeYearMonthandfinanceId, tempReceivable.cipher, tempReceivable.encryptionKey, tempReceivable.signed)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempReceivable.header, "失败信息为:", err)
 			}
@@ -460,6 +460,7 @@ func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType s
 			fields := strings.Split(tempinfo, ",")
 			tradeYearMonth := fields[7] //交易年月
 			tradeYearMonth = strings.Replace(tradeYearMonth, "[", "", -1)
+			financeId := fields[4]
 			fmt.Println(tradeYearMonth)
 			cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(tempinfo))
 			if err != nil {
@@ -467,7 +468,7 @@ func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType s
 				logs.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
 			}
 			temp := packedHistoricalMessage{}
-			temp.tradeYearMonth = tradeYearMonth
+			temp.tradeYearMonthandfinanceId = tradeYearMonth + "," + financeId
 			temp.cipher = cipher
 			temp.encryptionKey = encryptionKey
 			temp.signed = signed

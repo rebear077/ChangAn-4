@@ -1,23 +1,23 @@
 package main
 
-import (
-	"fmt"
+// import (
+// 	"fmt"
 
-	uptoChain "github.com/rebear077/changan/tochain"
-)
+// 	uptoChain "github.com/rebear077/changan/tochain"
+// )
 
-type deployer struct {
-	ctr *uptoChain.Controller
-}
+// type deployer struct {
+// 	ctr *uptoChain.Controller
+// }
 
-func NewDeploy() *deployer {
-	return &deployer{
-		ctr: uptoChain.NewController(),
-	}
-}
+// func NewDeploy() *deployer {
+// 	return &deployer{
+// 		ctr: uptoChain.NewController(),
+// 	}
+// }
 
-func main() {
-	deploy := NewDeploy()
-	res := deploy.ctr.DeployContract()
-	fmt.Println(res)
-}
+// func main() {
+// 	deploy := NewDeploy()
+// 	res := deploy.ctr.DeployContract()
+// 	fmt.Println(res)
+// }
