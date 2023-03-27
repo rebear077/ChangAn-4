@@ -1,15 +1,15 @@
 [Network]
 #type rpc or channel
 Type="channel"
-#CAFile="/home/jackson/fisco/nodes/127.0.0.1/sdk/ca.crt"
-#Cert="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.crt"
-#Key="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.key"
+CAFile="/home/jackson/fisco/nodes/127.0.0.1/sdk/ca.crt"
+Cert="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.crt"
+Key="/home/jackson/fisco/nodes/127.0.0.1/sdk/sdk.key"
 #CAFile="/home/jackson/fisco/nodes/10.128.222.225/sdk/ca.crt"
 #Cert="/home/jackson/fisco/nodes/10.128.222.225/sdk/sdk.crt"
 #Key="/home/jackson/fisco/nodes/10.128.222.225/sdk/sdk.key"
-CAFile="/home/dyy/fisco/nodes/127.0.0.1/sdk/ca.crt"
-Cert="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.crt"
-Key="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.key"
+#CAFile="/home/dyy/fisco/nodes/127.0.0.1/sdk/ca.crt"
+#Cert="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.crt"
+#Key="/home/dyy/fisco/nodes/127.0.0.1/sdk/sdk.key"
 #CAFile="/home/dyy/generator-B/dir_sdk_ca_agencyB/sdk/ca.crt"
 #Cert="/home/dyy/generator-B/dir_sdk_ca_agencyB/sdk/sdk.crt"
 #Key="/home/dyy/generator-B/dir_sdk_ca_agencyB/sdk/sdk.key"
@@ -20,7 +20,7 @@ KeyContext=''''''
 CertContext=''''''
 
 [[Network.Connection]]
-NodeURL="127.0.0.1:20200"
+NodeURL="127.0.0.1:20210"
 GroupID=1
 # [[Network.Connection]]
 # NodeURL="127.0.0.1:20200"
@@ -28,8 +28,8 @@ GroupID=1
 
 [Account]
 # only support PEM format for now
-#KeyFile="/home/jackson/fisco/accounts/0xacfddca5da143594478c22928d7f2bde030dc79a.pem"
-KeyFile="/home/dyy/fisco/accounts/0xcd5b9aa66c5d8e31688a8cbcb31c2aa1a243c0c8.pem"
+KeyFile="/home/jackson/fisco/accounts/0xacfddca5da143594478c22928d7f2bde030dc79a.pem"
+#KeyFile="/home/dyy/fisco/accounts/0xcd5b9aa66c5d8e31688a8cbcb31c2aa1a243c0c8.pem"
 
 [Chain]
 ChainID=1
