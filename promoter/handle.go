@@ -1,7 +1,9 @@
 package promote
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -99,6 +101,13 @@ func (p *Promoter) InvoiceInfoHandler() {
 			errNum := errorhandle.ERRDealer.GetInvoiceInfoPoolLength()
 			success := uptoChain.QueryInvoiceSuccessCounter()
 			if errNum+success == len(messages) {
+				if errNum != 0 {
+					mapping := errorhandle.ERRDealer.QueryInvoiceInfoPool()
+					for _, value := range mapping {
+						WriteToFile(value + "\n")
+					}
+					errorhandle.ERRDealer.DeleteErrorIssueInvoiceInformationStoragePool()
+				}
 				// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				uptoChain.ResetInvoiceSuccessCounter()
@@ -173,6 +182,13 @@ func (p *Promoter) HistoricalInfoHandler() {
 				errNum := errorhandle.ERRDealer.GetHistoricalUsedInfoPoolLength()
 				success := uptoChain.QueryHistoricalUsedCounter()
 				if errNum+success == len(hisUsedMessage) {
+					if errNum != 0 {
+						mapping := errorhandle.ERRDealer.QueryHistoricalUsedInfoPool()
+						for _, value := range mapping {
+							WriteToFile(value + "\n")
+						}
+						errorhandle.ERRDealer.DeleteErrorIssueHistoricalUsedInformationPool()
+					}
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisUsedMessage), success, errNum)
 					uptoChain.ResetHistoricalUsedCounter()
 					break
@@ -185,6 +201,13 @@ func (p *Promoter) HistoricalInfoHandler() {
 				errNum := errorhandle.ERRDealer.GetHistoricalSettleInfoPoolLength()
 				success := uptoChain.QueryHistoricalSettleCounter()
 				if errNum+success == len(hisSettleMessage) {
+					if errNum != 0 {
+						mapping := errorhandle.ERRDealer.QueryHistoricalSettleInfoPool()
+						for _, value := range mapping {
+							WriteToFile(value + "\n")
+						}
+						errorhandle.ERRDealer.DeleteErrorIssueHistoricalSettleInformationPool()
+					}
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisSettleMessage), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisSettleMessage), success, errNum)
 					uptoChain.ResetHistoricalSettleCounter()
@@ -198,6 +221,13 @@ func (p *Promoter) HistoricalInfoHandler() {
 				errNum := errorhandle.ERRDealer.GetHistoricalOrderInfoPoolLength()
 				success := uptoChain.QueryHistoricalOrderCounter()
 				if errNum+success == len(hisOrderMessage) {
+					if errNum != 0 {
+						mapping := errorhandle.ERRDealer.QueryHistoricalOrderInfoPool()
+						for _, value := range mapping {
+							WriteToFile(value + "\n")
+						}
+						errorhandle.ERRDealer.DeleteErrorIssueHistoricalOrderInformationPool()
+					}
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisOrderMessage), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisOrderMessage), success, errNum)
 					uptoChain.ResetHistoricalOrderCounter()
@@ -211,6 +241,13 @@ func (p *Promoter) HistoricalInfoHandler() {
 				errNum := errorhandle.ERRDealer.GetHistoricalReceivableInfoPoolLength()
 				success := uptoChain.QueryHistoricalReceivableCounter()
 				if errNum+success == len(hisReceivableMessage) {
+					if errNum != 0 {
+						mapping := errorhandle.ERRDealer.QueryHistoricalReceivableInfoPool()
+						for _, value := range mapping {
+							WriteToFile(value + "\n")
+						}
+						errorhandle.ERRDealer.DeleteErrorIssueHistoricalReceivableInformationPool()
+					}
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisReceivableMessage), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisReceivableMessage), success, errNum)
 					uptoChain.ResetHistoricalReceivableCounter()
@@ -280,6 +317,13 @@ func (p *Promoter) PoolInfoHandler() {
 				errNum := errorhandle.ERRDealer.GetPoolPlanInfoPoolLength()
 				success := uptoChain.QueryPoolPlanCounter()
 				if errNum+success == len(planMessages) {
+					if errNum != 0 {
+						mapping := errorhandle.ERRDealer.QueryPoolPlanInfoPool()
+						for _, value := range mapping {
+							WriteToFile(value + "\n")
+						}
+						errorhandle.ERRDealer.DeleteErrorIssuePoolPlanInformationPool()
+					}
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(planMessages), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(planMessages), success, errNum)
 					uptoChain.ResetPoolPlanCounter()
@@ -293,6 +337,13 @@ func (p *Promoter) PoolInfoHandler() {
 				errNum := errorhandle.ERRDealer.GetPoolUsedInfoPoolLength()
 				success := uptoChain.QueryPoolUsedCounter()
 				if errNum+success == len(usedMessages) {
+					if errNum != 0 {
+						mapping := errorhandle.ERRDealer.QueryHistoricalUsedInfoPool()
+						for _, value := range mapping {
+							WriteToFile(value + "\n")
+						}
+						errorhandle.ERRDealer.DeleteErrorIssuePoolUsedInformationPool()
+					}
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(usedMessages), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(usedMessages), success, errNum)
 					uptoChain.ResetPoolUsedCounter()
@@ -343,6 +394,13 @@ func (p *Promoter) SupplierFinancingApplicationInfoHandler() {
 			errNum := errorhandle.ERRDealer.GetSupplierFinancingApplicationPoolLength()
 			success := uptoChain.QuerySupplierSuccessCounter()
 			if errNum+success == len(messages) {
+				if errNum != 0 {
+					mapping := errorhandle.ERRDealer.QuerySupplierFinancingApplicationPool()
+					for _, value := range mapping {
+						WriteToFile(value + "\n")
+					}
+					errorhandle.ERRDealer.DeleteErrorIssueSupplierFinancingApplicationPool()
+				}
 				// logrus.Infof("同步融资意向完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				logs.Infof("同步融资意向完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				uptoChain.ResetSupplierSuccessCounter()
@@ -392,6 +450,13 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 			errNum := errorhandle.ERRDealer.GetPushPaymentAccountPoolLength()
 			success := uptoChain.QueryPaymentAccountsCounter()
 			if errNum+success == len(messages) {
+				if errNum != 0 {
+					mapping := errorhandle.ERRDealer.QueryPushPaymentAccountPool()
+					for _, value := range mapping {
+						WriteToFile(value + "\n")
+					}
+					errorhandle.ERRDealer.DeleteErrorIssuePushPaymentAccountsPool()
+				}
 				logs.Infof("回款信息同步完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				uptoChain.ResetPaymentAccountsCounter()
 				break
@@ -414,7 +479,7 @@ func (p *Promoter) packInfo(header string, info string, poolType string, method 
 	p.encryptedPool.Insert(temp, method, poolType)
 }
 
-//针对发票信息的packInfo
+// 针对发票信息的packInfo
 func (p *Promoter) packInvoiceInfo(header string, info string, poolType string, method string) {
 	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
 	if err != nil {
@@ -450,7 +515,7 @@ func (p *Promoter) packFinancingInfo(header string, info string, poolType string
 	p.encryptedPool.InsertFinancing(temp, method, poolType)
 }
 
-//针对历史交易信息的packInfo
+// 针对历史交易信息的packInfo
 func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType string, method string) {
 	var wg sync.WaitGroup
 	for _, info := range infos {
@@ -481,7 +546,7 @@ func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType s
 	wg.Wait()
 }
 
-//针对入池信息的packInfo
+// 针对入池信息的packInfo
 func (p *Promoter) packPoolInfos(header string, infos []string, poolType string, method string) {
 	var wg sync.WaitGroup
 	for _, info := range infos {
@@ -508,4 +573,17 @@ func (p *Promoter) packPoolInfos(header string, infos []string, poolType string,
 
 	}
 	wg.Wait()
+}
+func WriteToFile(info string) {
+	filePath := "./configs/errorInfo.txt"
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Println("文件打开失败", err)
+	}
+	defer file.Close()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	write.WriteString(info)
+	//Flush将缓存的文件真正写入到文件中
+	write.Flush()
 }
