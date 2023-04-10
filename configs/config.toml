@@ -46,7 +46,7 @@ MslProtocol="tcp"
 LogDBUrl="127.0.0.1:3306"
 LogDBUsername="root"
 LogDBPasswd="123456"
-LogDBName="selflog_test"
+LogDBName="log_test"
 LogDBProtocol="tcp"
 
 [ChainInfoDB]
@@ -56,6 +56,8 @@ ChainInfoPasswd="123456"
 ChainInfoName="chaininfo_test"
 ChainInfoProtocol="tcp"
 
+[ProjectPath]
+ProjectPath="/home/jackson/ChangAn-4/github仓库/ChangAn-4"
 
 [log]
 Path="./"

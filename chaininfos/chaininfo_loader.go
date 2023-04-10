@@ -7,6 +7,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/rebear077/changan/conf"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,9 +35,14 @@ type ChainData struct {
 func NewChainInfo() *ChainInfo {
 	// db, err := sql.Open("mysql", "root:123456@/db_node0")
 	//重要操作：注册文件！！！
-
+	configs, err := conf.ParseConfigFile("./configs/config.toml")
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	config := &configs[0]
 	//之后写在配置文件里
-	str := "root" + ":" + "123456" + "@/" + "chaininfo_test" + "?allowAllFiles=true"
+	str := config.ChainInfoUsername + ":" + config.ChainInfoPasswd + "@/" + config.ChainInfoName + "?allowAllFiles=true"
+	// str1 := "root" + ":" + "123456" + "@/" + "chaininfo_test" + "?allowAllFiles=true"
 	db, err := sql.Open("mysql", str)
 	createTable(db)
 	var pathstring []string
@@ -125,11 +131,16 @@ func (c *ChainInfo) appendLogpath() {
 
 // 除了最后一个，插入日志数据至mysql
 func (c *ChainInfo) InsertLogs() error {
+	configs, err := conf.ParseConfigFile("./configs/config.toml")
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	config := &configs[0]
 	lasttime := c.infopath[len(c.infopath)-1]
 	for i := 0; i < len(c.infopath)-1; i++ {
 		path := "output.log" + "." + c.infopath[i]
 		// fmt.Println("chaininfo path: ", path)
-		_, err := c.db.Exec("load data local infile '/home/jackson/ChangAn-3/chaininfos/chaininfo_files/" + path + "' into table u_t_chaininfo CHARACTER SET utf8 fields terminated by '|' lines terminated by '\n'")
+		_, err := c.db.Exec("load data local infile '" + config.ProjectPath + "/chaininfos/chaininfo_files/" + path + "' into table u_t_chaininfo CHARACTER SET utf8 fields terminated by '|' lines terminated by '\n'")
 		if err != nil {
 			fmt.Println(err)
 			// return err

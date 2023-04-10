@@ -41,6 +41,7 @@ type Config struct {
 	ChainInfoPasswd   string
 	ChainInfoName     string
 	ChainInfoProtocol string
+	ProjectPath       string
 }
 
 // ParseConfigFile parses the configuration from toml config file
@@ -102,6 +103,16 @@ func ParseConfig(buffer []byte) ([]Config, error) {
 		config.LogDBPasswd = viper.GetString("LogDB.LogDBPasswd")
 		config.LogDBName = viper.GetString("LogDB.LogDBName")
 		config.LogDBProtocol = viper.GetString("LogDB.LogDBProtocol")
+	}
+	if viper.IsSet("ChainInfoDB") {
+		config.ChainInfoUrl = viper.GetString("ChainInfoDB.ChainInfoUrl")
+		config.ChainInfoUsername = viper.GetString("ChainInfoDB.ChainInfoUsername")
+		config.ChainInfoPasswd = viper.GetString("ChainInfoDB.ChainInfoPasswd")
+		config.ChainInfoName = viper.GetString("ChainInfoDB.ChainInfoName")
+		config.ChainInfoProtocol = viper.GetString("ChainInfoDB.ChainInfoProtocol")
+	}
+	if viper.IsSet("ProjectPath") {
+		config.ProjectPath = viper.GetString("ProjectPath.ProjectPath")
 	}
 	if viper.IsSet("Chain") {
 		if viper.IsSet("Chain.ChainID") {

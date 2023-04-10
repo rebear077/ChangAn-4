@@ -104,30 +104,29 @@ func EncodeEnterpoolData(list []*receive.EnterpoolData) map[int]map[string]strin
 func EncodeFinancingIntention(list []*receive.FinancingIntention) map[int]map[string]string {
 	mapping := make(map[int]map[string]string)
 	index := 0
-	for _, v := range list {
-		for _, l := range *v {
-			index += 1
-			mapping[index] = make(map[string]string)
-			header := l.Customerid
-			tempStr := l.Custcdlinkposition + "," + l.Custcdlinkname + "," + l.Certificateid + "," + l.Corpname + "," + l.Remark + "," + l.Bankcontact + "," + l.Banklinkname + "," + l.Custcdcontact + "," + l.Customerid + "," + l.Financeid + "," + l.Cooperationyears + "," + l.Certificatetype + "," + l.Intercustomerid
-			mapping[index][header] = tempStr
-		}
-
+	// for _, v := range list { //发来的时候是单独一条一条, 不是以数组的形式
+	for _, l := range list {
+		index += 1
+		mapping[index] = make(map[string]string)
+		header := l.Customerid
+		tempStr := l.Custcdlinkposition + "," + l.Custcdlinkname + "," + l.Certificateid + "," + l.Corpname + "," + l.Remark + "," + l.Bankcontact + "," + l.Banklinkname + "," + l.Custcdcontact + "," + l.Customerid + "," + l.Financeid + "," + l.Cooperationyears + "," + l.Certificatetype + "," + l.Intercustomerid
+		mapping[index][header] = tempStr
 	}
+
+	// }
 	return mapping
 }
 func EncodeCollectionAccount(list []*receive.CollectionAccount) map[int]map[string]string {
 	mapping := make(map[int]map[string]string)
 	index := 0
-	for _, v := range list {
-		for _, l := range *v {
-			index += 1
-			mapping[index] = make(map[string]string)
-			header := l.Customerid
-			tempStr := l.Backaccount + "," + l.Certificateid + "," + l.Customerid + "," + l.Corpname + "," + l.Lockremark + "," + l.Certificatetype + "," + l.Intercustomerid
-			mapping[index][header] = tempStr
-		}
-
+	// for _, v := range list {
+	for _, l := range list {
+		index += 1
+		mapping[index] = make(map[string]string)
+		header := l.Customerid
+		tempStr := l.Backaccount + "," + l.Certificateid + "," + l.Customerid + "," + l.Corpname + "," + l.Lockremark + "," + l.Certificatetype + "," + l.Intercustomerid
+		mapping[index][header] = tempStr
 	}
+	// }
 	return mapping
 }

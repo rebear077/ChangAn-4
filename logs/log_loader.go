@@ -7,6 +7,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/rebear077/changan/conf"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,9 +30,14 @@ type LogData struct {
 func NewLoader() *Loader {
 	// db, err := sql.Open("mysql", "root:123456@/db_node0")
 	//重要操作：注册文件！！！
-
+	configs, err := conf.ParseConfigFile("./configs/config.toml")
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	config := &configs[0]
 	//之后写在配置文件里
-	str := "root" + ":" + "123456" + "@/" + "log_test" + "?allowAllFiles=true"
+	str := config.LogDBUsername + ":" + config.LogDBPasswd + "@/" + config.LogDBName + "?allowAllFiles=true"
+	// str := "root" + ":" + "123456" + "@/" + "log_test" + "?allowAllFiles=true"
 	db, err := sql.Open("mysql", str)
 	createTable(db)
 	var pathstring []string
@@ -126,6 +132,11 @@ func (l *Loader) appendLogpath() {
 
 // 除了最后一个，插入日志数据至mysql
 func (l *Loader) InsertLogs() error {
+	configs, err := conf.ParseConfigFile("./configs/config.toml")
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+	config := &configs[0]
 	// if len(logpath) >= 2 {
 	// fmt.Println("l.logpath: ", l.logpath)
 	lasttime := l.logpath[len(l.logpath)-1]
@@ -133,7 +144,11 @@ func (l *Loader) InsertLogs() error {
 	for i := 0; i < len(l.logpath)-1; i++ {
 		path := "output.log" + "." + l.logpath[i]
 		// fmt.Println("path: ", path)
-		l.sql.Exec("load data local infile '/home/jackson/ChangAn-1/logs/log_files/" + path + "' into table u_t_log CHARACTER SET utf8 fields terminated by '|' lines terminated by '\n'")
+		l.sql.Exec("load data local infile '" + config.ProjectPath + "/logs/log_files/" + path + "' into table u_t_log CHARACTER SET utf8 fields terminated by '|' lines terminated by '\n'")
+		if err != nil {
+			fmt.Println(err)
+			// return err
+		}
 	}
 	l.logpath = nil
 	l.logpath = append(l.logpath, lasttime)

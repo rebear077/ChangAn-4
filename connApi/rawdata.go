@@ -84,8 +84,7 @@ type Providerusedinfos struct {
 }
 
 // 提交融资意向接口
-
-type FinancingIntention []struct {
+type FinancingIntention struct {
 	Custcdlinkposition string `json:"CustcdLinkPosition"`
 	Custcdlinkname     string `json:"CustcdLinkName"`
 	Certificateid      string `json:"CertificateId"`
@@ -101,8 +100,24 @@ type FinancingIntention []struct {
 	Intercustomerid    string `json:"InterCustomerId"`
 }
 
+// type FinancingIntention []struct {
+// 	Custcdlinkposition string `json:"CustcdLinkPosition"`
+// 	Custcdlinkname     string `json:"CustcdLinkName"`
+// 	Certificateid      string `json:"CertificateId"`
+// 	Corpname           string `json:"CorpName"`
+// 	Remark             string `json:"Remark"`
+// 	Bankcontact        string `json:"BankContact"`
+// 	Banklinkname       string `json:"BankLinkName"`
+// 	Custcdcontact      string `json:"CustcdContact"`
+// 	Customerid         string `json:"CustomerId"`
+// 	Financeid          string `json:"FinanceId"`
+// 	Cooperationyears   string `json:"CooperationYears"`
+// 	Certificatetype    string `json:"CertificateType"`
+// 	Intercustomerid    string `json:"InterCustomerId"`
+// }
+
 // 推送回款账户接口
-type CollectionAccount []struct {
+type CollectionAccount struct {
 	Backaccount     string `json:"BackAccount"`
 	Certificateid   string `json:"CertificateId"`
 	Customerid      string `json:"CustomerId"`
@@ -111,3 +126,13 @@ type CollectionAccount []struct {
 	Certificatetype string `json:"CertificateType"`
 	Intercustomerid string `json:"InterCustomerId"`
 }
+
+// type CollectionAccount []struct {
+// 	Backaccount     string `json:"BackAccount"`
+// 	Certificateid   string `json:"CertificateId"`
+// 	Customerid      string `json:"CustomerId"`
+// 	Corpname        string `json:"CorpName"`
+// 	Lockremark      string `json:"LockRemark"`
+// 	Certificatetype string `json:"CertificateType"`
+// 	Intercustomerid string `json:"InterCustomerId"`
+// }
