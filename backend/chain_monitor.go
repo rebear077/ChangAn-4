@@ -125,10 +125,10 @@ func (m *Monitor) VerifyChainStatus() bool {
 		logrus.Fatalln("共识异常，请求被拒绝,退出")
 		return false
 	} else {
-		if string(m.pendingTX) != "0x0" {
-			return true
-		} else {
+		if string(m.pendingTX) != "\"0x0\"" {
 			return false
+		} else {
+			return true
 		}
 	}
 

@@ -126,13 +126,51 @@ type CollectionAccount struct {
 	Certificatetype string `json:"CertificateType"`
 	Intercustomerid string `json:"InterCustomerId"`
 }
+type SelectedInfoToApplication struct {
+	Invoice     []InvoiceInfo        `json:"invoice"`
+	HistoryInfo []TransactionHistory `json:"historyInfo"`
+	PoolInfo    []EnterpoolData      `json:"poolInfo"`
+}
 
-// type CollectionAccount []struct {
-// 	Backaccount     string `json:"BackAccount"`
-// 	Certificateid   string `json:"CertificateId"`
-// 	Customerid      string `json:"CustomerId"`
-// 	Corpname        string `json:"CorpName"`
-// 	Lockremark      string `json:"LockRemark"`
-// 	Certificatetype string `json:"CertificateType"`
-// 	Intercustomerid string `json:"InterCustomerId"`
+type InvoiceInfo struct {
+	CertificateID   string `json:"certificateId"`
+	CustomerID      string `json:"customerId"`
+	CorpName        string `json:"corpName"`
+	CertificateType string `json:"certificateType"`
+	InterCustomerID string `json:"interCustomerId"`
+	InvoiceNotaxAmt string `json:"InvoiceNotaxAmt"`
+	InvoiceCcy      string `json:"InvoiceCcy"`
+	SellerName      string `json:"SellerName"`
+	InvoiceType     string `json:"InvoiceType"`
+	BuyerName       string `json:"BuyerName"`
+	BuyerUsccode    string `json:"BuyerUsccode"`
+	InvoiceDate     string `json:"InvoiceDate"`
+	SellerUsccode   string `json:"SellerUsccode"`
+	InvoiceCode     string `json:"InvoiceCode"`
+	InvoiceNum      string `json:"InvoiceNum"`
+	CheckCode       string `json:"CheckCode"`
+	InvoiceAmt      string `json:"InvoiceAmt"`
+}
+
+//	type TransactionHistoryData struct {
+//		CustomerGrade   string            `json:"customerGrade"`
+//		CertificateType string            `json:"certificateType"`
+//		InterCustomerID string            `json:"interCustomerId"`
+//		CorpName        string            `json:"corpName"`
+//		FinanceID       string            `json:"financeId"`
+//		CertificateID   string            `json:"certificateId"`
+//		CustomerID      string            `json:"customerId"`
+//		UsedInfos       []Usedinfos       `json:"usedInfos"`
+//		SettleInfos     []Settleinfos     `json:"settleInfos"`
+//		OrderInfos      []Orderinfos      `json:"orderInfos"`
+//		ReceivableInfos []Receivableinfos `json:"receivableInfos"`
+//	}
+// type Enterpool struct {
+// 	DateTimePoint     string              `json:"dateTimePoint"`
+// 	Ccy               string              `json:"ccy"`
+// 	CustomerID        string              `json:"customerId"`
+// 	InterCustomerID   string              `json:"interCustomerId"`
+// 	ReceivableBalance string              `json:"receivableBalance"`
+// 	PlanInfos         []Planinfos         `json:"planInfos"`
+// 	ProviderUsedInfos []Providerusedinfos `json:"ProviderUsedInfos"`
 // }

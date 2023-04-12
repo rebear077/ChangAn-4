@@ -22,6 +22,7 @@ type Server struct {
 
 func NewServer() *Server {
 	ctr := uptoChain.NewController()
+
 	en := encrypter.NewEncrypter()
 	symkey, err := getSymKey("./configs/symPri.txt")
 	if err != nil {
@@ -92,6 +93,11 @@ func (s *Server) IssuePubilcKey(role string) (bool, error) {
 	}
 	return res, nil
 
+}
+
+func (s *Server) Signature(data []byte) []byte {
+	signed := s.encrypte.Signature(data)
+	return signed
 }
 
 // 数据加密

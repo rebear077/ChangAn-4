@@ -46,24 +46,38 @@ func NewPromoter() *Promoter {
 
 func (p *Promoter) Start() {
 	// logrus.Infoln("开始运行")
-	go p.loader.Start()
-	go p.chaininfo.Start()
+	// go p.loader.Start()
+	// go p.chaininfo.Start()
 	logs.Infoln("开始运行")
 	go p.monitor.Start()
 	for {
 		if p.monitor.VerifyChainStatus() {
-			// time.Sleep(5 * time.Second)
 			p.InvoiceInfoHandler()
 			p.SupplierFinancingApplicationInfoHandler()
 			p.HistoricalInfoHandler()
 			p.PushPaymentAccountsInfoHandler()
 			p.PoolInfoHandler()
+			p.SelectedInfoToApplicationHandler()
 		} else {
 			time.Sleep(5 * time.Second)
 		}
 	}
 }
+func (p *Promoter) SelectedInfoToApplicationHandler() {
+	if len(p.DataApi.SelectedInfoToApplicationData) != 0 {
+		fmt.Println("....")
+		p.DataApi.SelectedInfoToApplicationMutex.Lock()
+		message := p.DataApi.SelectedInfoToApplicationData
+		p.DataApi.SelectedInfoToApplicationData = nil
+		p.DataApi.SelectedInfoToApplicationMutex.Unlock()
+		//计算哈希
+		fmt.Println(len(message))
+		invoice, history, pool := server.PackInfo(*message[0])
+		//TODO
 
+		p.DataApi.Ok <- true
+	}
+}
 func (p *Promoter) InvoiceInfoHandler() {
 	if len(p.DataApi.InvoicePool) != 0 {
 		logs.Infoln(len(p.DataApi.InvoicePool))

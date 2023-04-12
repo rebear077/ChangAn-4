@@ -16,11 +16,11 @@ func main() {
 		http.HandleFunc("/asl/universal/caqc/push-inpool", promoter.DataApi.HandleEnterpoolData)
 		http.HandleFunc("/asl/universal/commmit-intention", promoter.DataApi.HandleFinancingIntention)
 		http.HandleFunc("/asl/universal/back-account-lock", promoter.DataApi.HandleCollectionAccount)
+		http.HandleFunc("/asl/universal/selected-to-application", promoter.DataApi.HandleSelectedToApplication)
 		err := http.ListenAndServeTLS(":8443", "connApi/confs/server.pem", "connApi/confs/server.key", nil)
 		if err != nil {
 			log.Fatalf("启动 HTTPS 服务器失败: %v", err)
 		}
 	}()
-
 	promoter.Start()
 }

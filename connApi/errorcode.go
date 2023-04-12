@@ -9,7 +9,14 @@ func sucessCode() string {
 	}`)
 	return string(jsonData)
 }
-
+func failedCode() string {
+	jsonData := []byte(`{
+		"msg":"",
+		"result": "{}",
+		"code":"failed"
+	}`)
+	return string(jsonData)
+}
 func timeExceeded() string {
 	jsonData := []byte(`{
 		"msg":"时间戳超时",

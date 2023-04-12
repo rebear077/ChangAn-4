@@ -52,6 +52,7 @@ func NewController() *Controller {
 		// logrus.Fatalln(err)
 		Logs.Fatalln(err)
 	}
+
 	config := &configs[0]
 	client, err := client.Dial(config)
 	if err != nil {

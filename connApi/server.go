@@ -13,25 +13,30 @@ import (
 var logs = logloader.NewLog()
 
 type FrontEnd struct {
-	InvoicePool             []*InvoiceInformation
-	TransactionHistoryPool  []*TransactionHistory
-	EnterpoolDataPool       []*EnterpoolData
-	FinancingIntentionPool  []*FinancingIntention
-	CollectionAccountPool   []*CollectionAccount
-	Invoicemutex            sync.RWMutex
-	TransactionHistorymutex sync.RWMutex
-	EnterpoolDatamutex      sync.RWMutex
-	FinancingIntentionmutex sync.RWMutex
-	CollectionAccountmutex  sync.RWMutex
+	InvoicePool                    []*InvoiceInformation
+	TransactionHistoryPool         []*TransactionHistory
+	EnterpoolDataPool              []*EnterpoolData
+	FinancingIntentionPool         []*FinancingIntention
+	CollectionAccountPool          []*CollectionAccount
+	SelectedInfoToApplicationData  []*SelectedInfoToApplication
+	Invoicemutex                   sync.RWMutex
+	TransactionHistorymutex        sync.RWMutex
+	EnterpoolDatamutex             sync.RWMutex
+	FinancingIntentionmutex        sync.RWMutex
+	CollectionAccountmutex         sync.RWMutex
+	SelectedInfoToApplicationMutex sync.RWMutex
+	Ok                             chan bool
 }
 
 func NewFrontEnd() *FrontEnd {
 	return &FrontEnd{
-		InvoicePool:            make([]*InvoiceInformation, 0),
-		TransactionHistoryPool: make([]*TransactionHistory, 0),
-		EnterpoolDataPool:      make([]*EnterpoolData, 0),
-		FinancingIntentionPool: make([]*FinancingIntention, 0),
-		CollectionAccountPool:  make([]*CollectionAccount, 0),
+		InvoicePool:                   make([]*InvoiceInformation, 0),
+		TransactionHistoryPool:        make([]*TransactionHistory, 0),
+		EnterpoolDataPool:             make([]*EnterpoolData, 0),
+		FinancingIntentionPool:        make([]*FinancingIntention, 0),
+		CollectionAccountPool:         make([]*CollectionAccount, 0),
+		SelectedInfoToApplicationData: make([]*SelectedInfoToApplication, 0),
+		Ok:                            make(chan bool),
 	}
 }
 func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request *http.Request) {
@@ -272,6 +277,35 @@ func (f *FrontEnd) HandleCollectionAccount(writer http.ResponseWriter, request *
 	}
 }
 
+// 处理选取借贷的数据
+func (f *FrontEnd) HandleSelectedToApplication(writer http.ResponseWriter, request *http.Request) {
+	// request.Header.Set("Connection", "close")
+	var message SelectedInfoToApplication
+	if json.NewDecoder(request.Body).Decode(&message) != nil {
+		jsonData := wrongJsonType()
+		fmt.Fprint(writer, jsonData)
+	} else {
+		//返回成功字段
+		fmt.Println(message)
+		f.SelectedInfoToApplicationMutex.Lock()
+		f.SelectedInfoToApplicationData = append(f.SelectedInfoToApplicationData, &message)
+		f.SelectedInfoToApplicationMutex.Unlock()
+		fmt.Println(len(f.SelectedInfoToApplicationData))
+		select {
+		case res := <-f.Ok:
+			if res {
+				jsonData := sucessCode()
+				fmt.Fprint(writer, jsonData)
+				return
+			} else {
+				jsonData := failedCode()
+				fmt.Fprintln(writer, jsonData)
+				return
+			}
+		}
+
+	}
+}
 func check(err error) {
 	if err != nil {
 		logs.Fatalln(err)
