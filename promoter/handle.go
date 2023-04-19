@@ -72,7 +72,7 @@ func (p *Promoter) SelectedInfoToApplicationHandler() {
 		p.DataApi.SelectedInfoToApplicationMutex.Unlock()
 		//计算哈希
 		fmt.Println(len(message))
-		invoice, history, pool := server.PackInfo(*message[0])
+		// invoice, history, pool := server.PackInfo(*message[0])
 		//TODO
 		p.DataApi.Ok <- true
 	}
