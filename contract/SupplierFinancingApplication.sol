@@ -19,6 +19,11 @@ contract SupplierFinancingApplication is Ownable {
         tf.createTable(TABLE_NAME, "id","financingid,data,key,hash");
         mapStorage = new MapStorage();
     }
+    
+    event InsertSupplierFinancingApplication(string id, string financingid, string hash);
+    event UpdateSupplierFinancingApplication(string id, string financingid, string hash);
+    event FinancingApplicationHashNotFound(string customerid, string hash, string tips);
+    
     function insert(string memory _id, string memory _financingid, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
@@ -27,6 +32,23 @@ contract SupplierFinancingApplication is Ownable {
         entry.set("key",_key);
         entry.set("hash",_hash);
         int256 count = table.insert(_id, entry);
+        emit InsertSupplierFinancingApplication(_id, _financingid, _hash);
+        return count;
+    }
+    function update(string memory _id, string memory _financingid, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+        Table table = tf.openTable(TABLE_NAME);
+        Entry entry = table.newEntry();
+        require(_isProcessIdExist(table, _id), "SupplierFinancingApplication select: current processId not exist");
+        entry.set("financingid",_financingid);
+        entry.set("data",_data);
+        entry.set("key",_key);
+        entry.set("hash",_hash);
+        int256 count = table.insert(_id, entry);
+        if (count == 1){
+            emit UpdateSupplierFinancingApplication(_id, _financingid, _hash);
+        } else {
+            emit FinancingApplicationHashNotFound(_id, _hash, "未找到记录");
+        }
         return count;
     }
     function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {
@@ -54,8 +76,6 @@ contract SupplierFinancingApplication is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("[");
-            _json = _json.concat(_entry.getString("financingid"));
-            _json = _json.concat(",");
             _json = _json.concat(_entry.getString("data"));
             _json = _json.concat(",");
             _json = _json.concat(_entry.getString("key"));
@@ -72,9 +92,6 @@ contract SupplierFinancingApplication is Ownable {
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("{");
-            _json=_json.concat("\"financingid\":\"");
-            _json = _json.concat(_entry.getString("financingid"));
-            _json = _json.concat("\",");
             _json=_json.concat("\"data\":\"");
             _json = _json.concat(_entry.getString("data"));
             _json = _json.concat("\",");

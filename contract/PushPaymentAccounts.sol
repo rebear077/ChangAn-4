@@ -9,7 +9,7 @@ contract PushPaymentAccounts is Ownable {
     using LibString for string;
     MapStorage private mapStorage;
     TableFactory tf;
-    string constant TABLE_NAME = "t_push_payment_accounts1";
+    string constant TABLE_NAME = "t_push_payment_accounts";
     // 表名称：t_push_payment_accounts
     // 表主键：id 
     // 表字段：data
@@ -19,13 +19,23 @@ contract PushPaymentAccounts is Ownable {
         tf.createTable(TABLE_NAME, "id","data,key,hash");
         mapStorage = new MapStorage();
     }
-    function insert(string memory _id, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    
+    event UpdatePaymentAccounts(string customerid, string hash);
+    event PaymentAccountsHashNotFound(string customerid, string hash, string tips);
+    
+    function update(string memory _id, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
+        require(_isProcessIdExist(table, _id), "PushPaymentAccounts select: current processId not exist");
         entry.set("data", _data);
         entry.set("key",_key);
         entry.set("hash",_hash);
         int256 count = table.insert(_id, entry);
+        if (count == 1){
+            emit UpdatePaymentAccounts(_id, _hash);
+        } else {
+            emit PaymentAccountsHashNotFound(_id, _hash, "未找到记录");
+        }
         return count;
     }
       function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {

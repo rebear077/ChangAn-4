@@ -9,28 +9,59 @@ contract HistorySettleInfo is Ownable {
     using LibString for string;
     MapStorage private mapStorage;
     TableFactory tf;
-    string constant TABLE_NAME = "t_history_settle_information2";
+    string constant TABLE_NAME = "t_history_settle_information4";
     constructor() public {
         tf = TableFactory(0x1001);
-        tf.createTable(TABLE_NAME, "id","tradeYearMonth,financeId,data,key,hash");
+        tf.createTable(TABLE_NAME, "id","customerid,tradeYearMonth,financeId,data,key,hash,owner");
         mapStorage = new MapStorage();
     }
-    function insert(string memory _id,string memory _tradeYearMonthandfinanceId, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    
+    event InsertSettleInfo(string customerid, string hash, string owner);
+    event UpdateSettleInfo(string customerid, string hash, string owner);
+    event HistorySettleInfoHashNotFound(string customerid, string hash, string tips);
+    
+    function insert(string memory _id,string memory _params, string memory _data,string memory _key) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
-        string[] memory ss = _tradeYearMonthandfinanceId.split(",");
+        string[] memory ss = _params.split(",");
         string memory _tradeYearMonth = ss[0];
         string memory _financeId = ss[1];
+        string memory _hash = ss[2];
+        string memory _owner = ss[3];
+        require(!_isHashExist(table, _id, _hash), "current Hash has already exist");
+        entry.set("customerid",_id);
         entry.set("tradeYearMonth",_tradeYearMonth);
         entry.set("financeId",_financeId);
         entry.set("data",_data);
         entry.set("key",_key);
         entry.set("hash",_hash);
+        entry.set("owner",_owner);
         int256 count = table.insert(_id, entry);
+        emit InsertSettleInfo(_id, _hash, _owner);
         return count;
     }
-     function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {
+    function update(string memory _id,string memory _hash, string memory _owner) public onlyOwner returns(int) {
+        Table table = tf.openTable(TABLE_NAME);
+        Entry entry = table.newEntry();
+        entry.set("owner",_owner);
+        Condition condition = table.newCondition();
+        condition.EQ("customerid", _id);
+        condition.EQ("hash", _hash);
+        int256 count = table.update(_id, entry, condition);
+        if (count == 1){
+            emit UpdateSettleInfo(_id, _hash, _owner);
+        } else {
+            emit HistorySettleInfoHashNotFound(_id, _hash, "未找到记录");
+        }
+        return count;
+    }
+    function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {
         Condition condition = _table.newCondition();
+        return _table.select(_id, condition).size() != int(0);
+    }
+    function _isHashExist(Table _table, string memory _id, string memory _hash) internal view returns(bool) {
+        Condition condition = _table.newCondition();
+        condition.EQ("hash", _hash);
         return _table.select(_id, condition).size() != int(0);
     }
     function select(string memory _id) private view returns(Entries _entries){
@@ -44,16 +75,14 @@ contract HistorySettleInfo is Ownable {
         Entries _entries = select(_id);
         _json = _returnData(_entries);
     }
-    function getDetailInJson(string memory _id) public view returns(string memory _json){
-        Entries _entries = select(_id);
-        _json = _returnJson(_entries);
-    }
     function _returnData(Entries _entries) internal view returns(string){
 
         string memory _json = "{";
         for (int256 i=0;i<_entries.size();i++){
             Entry _entry=_entries.get(i);
             _json=_json.concat("[");
+            _json = _json.concat(_entry.getString("customerid"));
+            _json = _json.concat(",");
             _json = _json.concat(_entry.getString("tradeYearMonth"));
             _json = _json.concat(",");
             _json = _json.concat(_entry.getString("financeId"));
@@ -63,38 +92,11 @@ contract HistorySettleInfo is Ownable {
             _json = _json.concat(_entry.getString("key"));
             _json = _json.concat(",");
             _json = _json.concat(_entry.getString("hash"));
+            _json = _json.concat(",");
+            _json = _json.concat(_entry.getString("owner"));
             _json = _json.concat("]");
         }
         _json=_json.concat("}");
         return _json;
     }
-    function _returnJson(Entries _entries)internal view returns(string){
-
-        string memory _json = "[";
-        for (int256 i=0;i<_entries.size();i++){
-            Entry _entry=_entries.get(i);
-            _json=_json.concat("{");
-            _json=_json.concat("\"tradeYearMonth\":\"");
-            _json = _json.concat(_entry.getString("tradeYearMonth"));
-            _json = _json.concat("\",");
-            _json=_json.concat("\"financeId\":\"");
-            _json = _json.concat(_entry.getString("financeId"));
-            _json = _json.concat("\",");
-            _json=_json.concat("\"data\":\"");
-            _json = _json.concat(_entry.getString("data"));
-            _json = _json.concat("\",");
-            _json=_json.concat("\"key\":\"");
-            _json = _json.concat(_entry.getString("key"));
-            _json = _json.concat("\",");
-            _json=_json.concat("\"hash\":\"");
-            _json = _json.concat(_entry.getString("hash"));
-            _json = _json.concat("\"}");
-            if (i!=_entries.size()-1){
-              _json =_json.concat(",");  
-            }
-        }
-        _json=_json.concat("]");
-        return _json;
-    }
-  
 }
