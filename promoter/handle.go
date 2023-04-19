@@ -104,15 +104,14 @@ func (p *Promoter) InvoiceInfoHandler() {
 		messages := p.encryptedPool.QueryMessages("invoice", "fast")
 		for _, message := range messages {
 			temp, _ := message.(packedInvoiceMessage)
-			err := p.server.IssueInvoiceInformation(temp.header, temp.params, temp.cipher, temp.encryptionKey, temp.signed)
+			err := p.server.IssueInvoiceInformation(temp.header, temp.params, temp.cipher, temp.encryptionKey)
 			if err != nil {
-				// logrus.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
 				logs.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
 			}
 		}
 		for {
-			errNum := errorhandle.ERRDealer.GetInvoiceInfoPoolLength()
-			success := uptoChain.QueryInvoiceSuccessCounter()
+			errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.IssueInvoiceInformation)
+			success := uptoChain.QueryIssueInvoiceSuccessCounter()
 			if errNum+success == len(messages) {
 				if errNum != 0 {
 					mapping := errorhandle.ERRDealer.QueryInvoiceInfoPool()
@@ -132,7 +131,6 @@ func (p *Promoter) InvoiceInfoHandler() {
 
 func (p *Promoter) HistoricalInfoHandler() {
 	if len(p.DataApi.TransactionHistoryPool) != 0 {
-		// logrus.Infoln("开始历史交易信息")
 		logs.Infoln("开始历史交易信息")
 		var wg sync.WaitGroup
 		hisinfos := make([]*receive.TransactionHistory, 0)
@@ -503,7 +501,7 @@ func (p *Promoter) packInvoiceInfo(header string, info string, poolType string, 
 	fields := strings.Split(info, ",")
 	temp := packedInvoiceMessage{}
 	//参数11是开票日期，参数8是发票类型，参数14是发票号码
-	temp.params = fields[11] + "," + fields[8] + "," + fields[14]
+	temp.params = fields[11] + "," + fields[8] + "," + fields[14] + "," + string(signed) + "," + ""
 	fmt.Println(temp.params)
 	temp.cipher = cipher
 	temp.encryptionKey = encryptionKey

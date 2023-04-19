@@ -112,6 +112,7 @@ func EncodeInvoiceInformation(list []*receive.InvoiceInformation) map[int]map[st
 	for _, l := range list {
 		header := l.Customerid
 		for _, info := range l.Invoiceinfos {
+			header += ":" + info.Invoicedate
 			guide += 1
 			mapping[guide] = make(map[string]string)
 			tempStr := l.Certificateid + "," + l.Customerid + "," + l.Corpname + "," + l.Certificatetype + "," + l.Intercustomerid + "," + info.Invoicenotaxamt + "," + info.Invoiceccy + "," + info.Sellername + "," + info.Invoicetype + "," + info.Buyername + "," + info.Buyerusccode + "," + info.Invoicedate + "," + info.Sellerusccode + "," + info.Invoicecode + "," + info.Invoicenum + "," + info.Checkcode + "," + info.Invoiceamt

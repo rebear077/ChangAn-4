@@ -71,7 +71,6 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					f.Invoicemutex.Unlock()
 					//TODO
 					//handling
-
 					fmt.Fprint(writer, jsonData)
 				}
 			} else {

@@ -3,7 +3,6 @@ package server
 import (
 	"io/ioutil"
 	"os"
-	"time"
 
 	encrypter "github.com/rebear077/changan/encryption"
 	sql "github.com/rebear077/changan/sqlController"
@@ -120,8 +119,16 @@ func (s *Server) DataEncryption(data []byte) ([]byte, []byte, []byte, error) {
 }
 
 // 发票信息
-func (s *Server) IssueInvoiceInformation(id string, timeandtype string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueInvoiceInformation(id, timeandtype, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueInvoiceInformation(id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueInvoiceInformation(id, params, string(cipher), string(encryptionKey))
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+func (s *Server) VerifyAndUpdateInvoiceInformation(id, owner string, hash []byte) error {
+	err := s.ctr.VerifyAndUpdateInvoiceInformation(id, string(hash), owner)
 	if err != nil {
 		return err
 	} else {
@@ -130,8 +137,8 @@ func (s *Server) IssueInvoiceInformation(id string, timeandtype string, cipher [
 }
 
 // 历史交易信息之入库信息
-func (s *Server) IssueHistoricalUsedInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalUsedInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalUsedInformation(id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalUsedInformation(id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -140,8 +147,8 @@ func (s *Server) IssueHistoricalUsedInformation(id string, tradeYearMonth string
 }
 
 // 历史交易信息之结算信息
-func (s *Server) IssueHistoricalSettleInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalSettleInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalSettleInformation(id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalSettleInformation(id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -150,8 +157,8 @@ func (s *Server) IssueHistoricalSettleInformation(id string, tradeYearMonth stri
 }
 
 // 历史交易信息之订单信息
-func (s *Server) IssueHistoricalOrderInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalOrderInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalOrderInformation(id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalOrderInformation(id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -160,8 +167,8 @@ func (s *Server) IssueHistoricalOrderInformation(id string, tradeYearMonth strin
 }
 
 // 历史交易信息之应收账款信息
-func (s *Server) IssueHistoricalReceivableInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueHistoricalReceivableInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueHistoricalReceivableInformation(id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalReceivableInformation(id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -170,8 +177,8 @@ func (s *Server) IssueHistoricalReceivableInformation(id string, tradeYearMonth 
 }
 
 // 入池数据之供应商生产计划信息
-func (s *Server) IssuePoolPlanInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssuePoolPlanInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssuePoolPlanInformation(id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssuePoolPlanInformation(id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -180,8 +187,8 @@ func (s *Server) IssuePoolPlanInformation(id string, tradeYearMonth string, ciph
 }
 
 // 入池数据之供应商生产入库信息
-func (s *Server) IssuePoolUsedInformation(id string, tradeYearMonth string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssuePoolUsedInformation(id, tradeYearMonth, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssuePoolUsedInformation(id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssuePoolUsedInformation(id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -200,8 +207,8 @@ func (s *Server) IssueSupplierFinancingApplication(id string, financingid string
 }
 
 // 回款信息
-func (s *Server) IssuePushPaymentAccount(id string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssuePushPaymentAccounts(id, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) UpdatePushPaymentAccount(id string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.UpdatePushPaymentAccounts(id, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -209,20 +216,20 @@ func (s *Server) IssuePushPaymentAccount(id string, cipher []byte, encryptionKey
 	}
 }
 
-// 插入日志
-func (s *Server) InsertLog(level string, info string) {
-	time := time.Now().String()[0:19]
-	err := s.sql.InsertLogs(time, level, info)
-	if err != nil {
-		logrus.Errorln(err)
-	}
-}
+// // 插入日志
+// func (s *Server) InsertLog(level string, info string) {
+// 	time := time.Now().String()[0:19]
+// 	err := s.sql.InsertLogs(time, level, info)
+// 	if err != nil {
+// 		logrus.Errorln(err)
+// 	}
+// }
 
-// 插入日志
-func (s *Server) InsertChainLog(level string, title string, info string) {
-	time := time.Now().String()[0:19]
-	err := s.sql.InserChainInfos(time, level, title, info)
-	if err != nil {
-		logrus.Errorln(err)
-	}
-}
+// // 插入日志
+// func (s *Server) InsertChainLog(level string, title string, info string) {
+// 	time := time.Now().String()[0:19]
+// 	err := s.sql.InserChainInfos(time, level, title, info)
+// 	if err != nil {
+// 		logrus.Errorln(err)
+// 	}
+// }

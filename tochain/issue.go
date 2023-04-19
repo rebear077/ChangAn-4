@@ -205,7 +205,7 @@ func (c *Controller) IssueHistoricalReceivableInformation(id string, params stri
 // 长安业务服务器只负责修改回款账户信息
 func (c *Controller) UpdatePushPaymentAccounts(id string, data string, key string, hash string) error {
 
-	_, err := c.session.AsyncUpdatePushPaymentAccounts(invokeIssuePushPaymentAccountsHandler, id, data, key, hash)
+	_, err := c.session.AsyncUpdatePushPaymentAccounts(invokeUpdatePushPaymentAccountsHandler, id, data, key, hash)
 	if err != nil {
 		return err
 	}

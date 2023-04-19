@@ -20,9 +20,23 @@ import (
 
 var logs = logloader.NewLog()
 
+const (
+	SupplierFinancingApplicationInfo = "SupplierFinancingApplication"
+	IssueInvoiceInformation          = "IssueInvoiceInformation"
+	UpdateInvoiceInformation         = "UpdateInvoiceInformation"
+	HistoricalUsedInformation        = "HistoricalUsedInformation"
+	HistoricalSettleInformation      = "HistoricalSettleInformation"
+	HistoricalReceivableInformation  = "HistoricalReceivableInformation"
+	HistoricalOrderInformation       = "HistoricalOrderInformation"
+	UpdatePushPaymentAccounts        = "UpdatePushPaymentAccounts"
+	PoolPlanInfo                     = "PoolPlanInfo"
+	PoolUsedInfo                     = "PoolUsedInfo"
+)
+
 var (
 	supplierCounter             = 0
-	invoiceCounter              = 0
+	issueinvoiceCounter         = 0
+	updateinvoiceCounter        = 0
 	historicalUsedCounter       = 0
 	historicalSettleCounter     = 0
 	historicalOrderCounter      = 0
@@ -32,7 +46,8 @@ var (
 	poolPlanCounter             = 0
 
 	supplierCounterMutex             sync.Mutex
-	invoiceCounterMutex              sync.Mutex
+	issueinvoiceCounterMutex         sync.Mutex
+	updateinvoiceCounterMutex        sync.Mutex
 	historicalUsedCounterMutex       sync.Mutex
 	historicalSettleCounterMutex     sync.Mutex
 	historicalOrderCounterMutex      sync.Mutex
@@ -44,6 +59,7 @@ var (
 
 // 融资意向
 func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err error) {
+
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return
@@ -54,19 +70,15 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("issueSupplierFinancingApplication", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
 		}
 		parseRet, ok := ret.([]interface{})
 		if !ok {
-			// logrus.Fatalln("解析失败")
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssueSupplierFinancingApplicationPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(SupplierFinancingApplicationInfo, receipt.TransactionHash, parseRet)
 	} else {
 		supplierCounterMutex.Lock()
 		supplierCounter += 1
@@ -87,23 +99,19 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 	}
 	// fmt.Println(setedLines)
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("issueInvoiceInformationStorage", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
 		}
 		parseRet, ok := ret.([]interface{})
 		if !ok {
-			// logrus.Fatalln("解析失败")
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssueInvoiceInformationStoragePool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(IssueInvoiceInformation, receipt.TransactionHash, parseRet)
 	} else {
-		invoiceCounterMutex.Lock()
-		invoiceCounter += 1
-		invoiceCounterMutex.Unlock()
+		issueinvoiceCounterMutex.Lock()
+		issueinvoiceCounter += 1
+		issueinvoiceCounterMutex.Unlock()
 	}
 }
 
@@ -113,30 +121,26 @@ func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receip
 		fmt.Printf("%v\n", err)
 		return
 	}
+
 	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
 	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updateInvoiceInformationStorage", receipt)
 	if err != nil {
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
-	// fmt.Println(setedLines)
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("updateInvoiceInformationStorage", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
 		}
 		parseRet, ok := ret.([]interface{})
 		if !ok {
-			// logrus.Fatalln("解析失败")
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssueInvoiceInformationStoragePool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(UpdateInvoiceInformation, receipt.TransactionHash, parseRet)
 	} else {
-		invoiceCounterMutex.Lock()
-		invoiceCounter += 1
-		invoiceCounterMutex.Unlock()
+		updateinvoiceCounterMutex.Lock()
+		updateinvoiceCounter += 1
+		updateinvoiceCounterMutex.Unlock()
 	}
 }
 
@@ -152,7 +156,6 @@ func invokeIssueHistoricalUsedInformationHandler(receipt *types.Receipt, err err
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("issueHistoricalUsedInformation", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
@@ -160,10 +163,8 @@ func invokeIssueHistoricalUsedInformationHandler(receipt *types.Receipt, err err
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string) + "," + parseRet[4].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssueHistoricalUsedInformationPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(HistoricalUsedInformation, receipt.TransactionHash, parseRet)
 	} else {
 		historicalUsedCounterMutex.Lock()
 		historicalUsedCounter += 1
@@ -183,7 +184,6 @@ func invokeIssueHistoricalSettleInformationHandler(receipt *types.Receipt, err e
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("issueHistoricalSettleInformation", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
@@ -191,10 +191,8 @@ func invokeIssueHistoricalSettleInformationHandler(receipt *types.Receipt, err e
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string) + "," + parseRet[4].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssueHistoricalSettleInformationPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(HistoricalSettleInformation, receipt.TransactionHash, parseRet)
 	} else {
 		historicalSettleCounterMutex.Lock()
 		historicalSettleCounter += 1
@@ -214,7 +212,6 @@ func invokeIssueHistoricalOrderInformationHandler(receipt *types.Receipt, err er
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("issueHistoricalOrderInformation", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
@@ -222,10 +219,8 @@ func invokeIssueHistoricalOrderInformationHandler(receipt *types.Receipt, err er
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string) + "," + parseRet[4].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssueHistoricalOrderInformationPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(HistoricalOrderInformation, receipt.TransactionHash, parseRet)
 	} else {
 		historicalOrderCounterMutex.Lock()
 		historicalOrderCounter += 1
@@ -245,7 +240,6 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("issueHistoricalReceivableInformation", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
@@ -253,10 +247,8 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string) + "," + parseRet[4].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssueHistoricalReceivableInformationPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(HistoricalReceivableInformation, receipt.TransactionHash, parseRet)
 	} else {
 		historicalReceivableCounterMutex.Lock()
 		historicalReceivableCounter += 1
@@ -265,29 +257,26 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 }
 
 // 回款信息
-func invokeIssuePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
+func invokeUpdatePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return
 	}
 	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
-	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "issuePushPaymentAccounts", receipt)
+	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updatePushPaymentAccounts", receipt)
 	if err != nil {
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
-		ret, err := parsed.UnpackInput("issuePushPaymentAccounts", common.FromHex(receipt.Input)[4:])
+		ret, err := parsed.UnpackInput("updatePushPaymentAccounts", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
 		}
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssuePushPaymentAccountsPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(UpdatePushPaymentAccounts, receipt.TransactionHash, parseRet)
 	} else {
 		paymentAccountsCounterMutex.Lock()
 		paymentAccountsCounter += 1
@@ -307,7 +296,6 @@ func invokeIssuePoolPlanInformationHandler(receipt *types.Receipt, err error) {
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
 		ret, err := parsed.UnpackInput("issuePoolPlanInformation", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
@@ -315,10 +303,8 @@ func invokeIssuePoolPlanInformationHandler(receipt *types.Receipt, err error) {
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string) + "," + parseRet[4].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssuePoolPlanInformationPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(PoolPlanInfo, receipt.TransactionHash, parseRet)
 	} else {
 		poolPlanCounterMutex.Lock()
 		poolPlanCounter += 1
@@ -338,8 +324,6 @@ func invokeIssuePoolUsedInformationHandler(receipt *types.Receipt, err error) {
 		log.Fatalf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines.Int64() != 1 {
-		var params string
-
 		ret, err := parsed.UnpackInput("issuePoolUsedInformation", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
@@ -347,10 +331,8 @@ func invokeIssuePoolUsedInformationHandler(receipt *types.Receipt, err error) {
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
-		} else {
-			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string) + "," + parseRet[4].(string)
 		}
-		errorhandle.ERRDealer.InsertErrorIssuePoolUsedInformationPool(receipt.TransactionHash, params)
+		errorhandle.ERRDealer.InsertError(PoolUsedInfo, receipt.TransactionHash, parseRet)
 	} else {
 		poolUsedCounterMutex.Lock()
 		poolUsedCounter += 1
@@ -386,10 +368,16 @@ func QuerySupplierSuccessCounter() int {
 	supplierCounterMutex.Unlock()
 	return temp
 }
-func QueryInvoiceSuccessCounter() int {
-	invoiceCounterMutex.Lock()
-	temp := invoiceCounter
-	invoiceCounterMutex.Unlock()
+func QueryIssueInvoiceSuccessCounter() int {
+	issueinvoiceCounterMutex.Lock()
+	temp := issueinvoiceCounter
+	issueinvoiceCounterMutex.Unlock()
+	return temp
+}
+func QueryUpdateInvoiceSuccessCounter() int {
+	updateinvoiceCounterMutex.Lock()
+	temp := updateinvoiceCounter
+	updateinvoiceCounterMutex.Unlock()
 	return temp
 }
 func QueryHistoricalUsedCounter() int {
@@ -441,10 +429,15 @@ func ResetSupplierSuccessCounter() {
 	supplierCounterMutex.Unlock()
 
 }
-func ResetInvoiceSuccessCounter() {
-	invoiceCounterMutex.Lock()
-	invoiceCounter = 0
-	invoiceCounterMutex.Unlock()
+func ResetIssueInvoiceSuccessCounter() {
+	issueinvoiceCounterMutex.Lock()
+	issueinvoiceCounter = 0
+	issueinvoiceCounterMutex.Unlock()
+}
+func ResetUpdateInvoiceSuccessCounter() {
+	updateinvoiceCounterMutex.Lock()
+	updateinvoiceCounter = 0
+	updateinvoiceCounterMutex.Unlock()
 }
 func ResetHistoricalUsedCounter() {
 	historicalUsedCounterMutex.Lock()
