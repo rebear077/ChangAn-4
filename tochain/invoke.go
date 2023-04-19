@@ -74,7 +74,7 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 	}
 }
 
-// 发票信息
+// 发布发票信息回调函数
 func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err error) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
@@ -89,6 +89,39 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 	if setedLines.Int64() != 1 {
 		var params string
 		ret, err := parsed.UnpackInput("issueInvoiceInformationStorage", common.FromHex(receipt.Input)[4:])
+		if err != nil {
+			fmt.Println(err)
+		}
+		parseRet, ok := ret.([]interface{})
+		if !ok {
+			// logrus.Fatalln("解析失败")
+			logs.Fatalln("解析失败")
+		} else {
+			params = parseRet[0].(string) + "," + parseRet[1].(string) + "," + parseRet[2].(string) + "," + parseRet[3].(string)
+		}
+		errorhandle.ERRDealer.InsertErrorIssueInvoiceInformationStoragePool(receipt.TransactionHash, params)
+	} else {
+		invoiceCounterMutex.Lock()
+		invoiceCounter += 1
+		invoiceCounterMutex.Unlock()
+	}
+}
+
+// 验证并更新发票信息回调函数
+func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receipt, err error) {
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
+	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updateInvoiceInformationStorage", receipt)
+	if err != nil {
+		log.Fatalf("error when transfer string to int: %v\n", err)
+	}
+	// fmt.Println(setedLines)
+	if setedLines.Int64() != 1 {
+		var params string
+		ret, err := parsed.UnpackInput("updateInvoiceInformationStorage", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
 		}

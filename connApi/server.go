@@ -69,6 +69,9 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					// fmt.Println(message)
 					f.InvoicePool = append(f.InvoicePool, &message)
 					f.Invoicemutex.Unlock()
+					//TODO
+					//handling
+
 					fmt.Fprint(writer, jsonData)
 				}
 			} else {

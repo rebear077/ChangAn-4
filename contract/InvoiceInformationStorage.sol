@@ -59,7 +59,6 @@ contract InvoiceInformationStorage is Ownable {
         } else {
             emit InvoiceInfoHashNotFound(_id, _hash, "未找到记录");
         }
-        
         return count;
     }
     function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {

@@ -134,6 +134,7 @@ func (c *Controller) IssuePublicKeyStorage(id string, role string, key string) (
 }
 
 // 上传融资意向请求
+// 入口参数：id：供应商编号；financingid:融资意向申请id；data：加密后的数据；key：加密后的key值；hash：哈希值
 func (c *Controller) IssueSupplierFinancingApplication(id string, financingid string, data string, key string, hash string) error {
 	_, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, financingid, data, key, hash)
 	if err != nil {
@@ -143,10 +144,20 @@ func (c *Controller) IssueSupplierFinancingApplication(id string, financingid st
 }
 
 // 上传发票信息
-func (c *Controller) IssueInvoiceInformation(id string, timeandtype string, data string, key string, hash string) error {
-	// fmt.Println("key: ", []byte(key))
-	// fmt.Println("hash: ", hash)
-	_, err := c.session.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, timeandtype, data, key, hash)
+// id:供应商编号:发票的年月日日期(2022-09-08);params:复合参数包括time:发票时间；type:发票类型；num:发票后六位校验码；hash：哈希值；owner：空的
+// data：加密后的数据；key：加密后的key值
+func (c *Controller) IssueInvoiceInformation(id string, params string, data string, key string) error {
+	_, err := c.session.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, params, data, key)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 验证并更新发票信息的owner字段
+// 入口参数：id：供应商编号:发票的年月日;hash：发票哈希值；owner：融资意向申请编号
+func (c *Controller) VerifyAndUpdateInvoiceInformation(id string, hash string, owner string) error {
+	_, err := c.session.AsyncUpdateInvoiceInformationStorage(invokeVerifyAndUpdateInvoiceInformationStorageHandler, id, hash, owner)
 	if err != nil {
 		return err
 	}
@@ -154,8 +165,9 @@ func (c *Controller) IssueInvoiceInformation(id string, timeandtype string, data
 }
 
 // 历史交易信息之入库信息
-func (c *Controller) IssueHistoricalUsedInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalUsedInformation(invokeIssueHistoricalUsedInformationHandler, id, tradeYearMonth, data, key, hash)
+// 入口参数：id：供应商id；params:复合参数包括tradeyearmonth:交易年月；financingid:融资意向申请编号；hash:哈希值；owner：空的
+func (c *Controller) IssueHistoricalUsedInformation(id string, params string, data string, key string) error {
+	_, err := c.session.AsyncIssueHistoricalUsedInformation(invokeIssueHistoricalUsedInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
@@ -163,8 +175,8 @@ func (c *Controller) IssueHistoricalUsedInformation(id string, tradeYearMonth st
 }
 
 // 历史交易信息之结算信息
-func (c *Controller) IssueHistoricalSettleInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalSettleInformation(invokeIssueHistoricalSettleInformationHandler, id, tradeYearMonth, data, key, hash)
+func (c *Controller) IssueHistoricalSettleInformation(id string, params string, data string, key string) error {
+	_, err := c.session.AsyncIssueHistoricalSettleInformation(invokeIssueHistoricalSettleInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
@@ -172,8 +184,8 @@ func (c *Controller) IssueHistoricalSettleInformation(id string, tradeYearMonth 
 }
 
 // 历史交易信息之订单信息
-func (c *Controller) IssueHistoricalOrderInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalOrderInformation(invokeIssueHistoricalOrderInformationHandler, id, tradeYearMonth, data, key, hash)
+func (c *Controller) IssueHistoricalOrderInformation(id string, params string, data string, key string) error {
+	_, err := c.session.AsyncIssueHistoricalOrderInformation(invokeIssueHistoricalOrderInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
@@ -181,8 +193,8 @@ func (c *Controller) IssueHistoricalOrderInformation(id string, tradeYearMonth s
 }
 
 // 历史交易信息之应收账款信息
-func (c *Controller) IssueHistoricalReceivableInformation(id string, tradeYearMonth string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueHistoricalReceivableInformation(invokeIssueHistoricalReceivableInformationHandler, id, tradeYearMonth, data, key, hash)
+func (c *Controller) IssueHistoricalReceivableInformation(id string, params string, data string, key string) error {
+	_, err := c.session.AsyncIssueHistoricalReceivableInformation(invokeIssueHistoricalReceivableInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
@@ -190,9 +202,10 @@ func (c *Controller) IssueHistoricalReceivableInformation(id string, tradeYearMo
 }
 
 // 回款信息
-func (c *Controller) IssuePushPaymentAccounts(id string, data string, key string, hash string) error {
+// 长安业务服务器只负责修改回款账户信息
+func (c *Controller) UpdatePushPaymentAccounts(id string, data string, key string, hash string) error {
 
-	_, err := c.session.AsyncIssuePushPaymentAccounts(invokeIssuePushPaymentAccountsHandler, id, data, key, hash)
+	_, err := c.session.AsyncUpdatePushPaymentAccounts(invokeIssuePushPaymentAccountsHandler, id, data, key, hash)
 	if err != nil {
 		return err
 	}
@@ -200,8 +213,8 @@ func (c *Controller) IssuePushPaymentAccounts(id string, data string, key string
 }
 
 // 入池数据之供应商生产计划信息
-func (c *Controller) IssuePoolPlanInformation(id string, time string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssuePoolPlanInformation(invokeIssuePoolPlanInformationHandler, id, time, data, key, hash)
+func (c *Controller) IssuePoolPlanInformation(id string, params string, data string, key string) error {
+	_, err := c.session.AsyncIssuePoolPlanInformation(invokeIssuePoolPlanInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
@@ -209,8 +222,8 @@ func (c *Controller) IssuePoolPlanInformation(id string, time string, data strin
 }
 
 // 入池数据之供应商生产入库信息
-func (c *Controller) IssuePoolUsedInformation(id string, time string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssuePoolUsedInformation(invokeIssuePoolUsedInformationHandler, id, time, data, key, hash)
+func (c *Controller) IssuePoolUsedInformation(id string, params string, data string, key string) error {
+	_, err := c.session.AsyncIssuePoolUsedInformation(invokeIssuePoolUsedInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
