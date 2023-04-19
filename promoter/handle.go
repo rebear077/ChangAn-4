@@ -74,7 +74,6 @@ func (p *Promoter) SelectedInfoToApplicationHandler() {
 		fmt.Println(len(message))
 		invoice, history, pool := server.PackInfo(*message[0])
 		//TODO
-
 		p.DataApi.Ok <- true
 	}
 }
