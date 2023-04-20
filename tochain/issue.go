@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"ethereum/go-ethereum/common"
@@ -19,7 +20,12 @@ import (
 )
 
 var Logs = logloader.NewLog()
+var M sync.Map
 
+type ResponseMessage struct {
+	message string
+	ok      bool
+}
 type Controller struct {
 	conn      *client.Client
 	session   *smartcontract.HostFactoryControllerSession
@@ -146,8 +152,16 @@ func (c *Controller) IssueSupplierFinancingApplication(id string, financingid st
 // 上传发票信息
 // id:供应商编号:发票的年月日日期(2022-09-08);params:复合参数包括time:发票时间；type:发票类型；num:发票后六位校验码；hash：哈希值；owner：空的
 // data：加密后的数据；key：加密后的key值
-func (c *Controller) IssueInvoiceInformation(id string, params string, data string, key string) error {
-	_, err := c.session.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, params, data, key)
+func (c *Controller) IssueInvoiceInformation(uuid, id, params, data, key string) error {
+	transaction, err := c.session.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, params, data, key)
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = nil
+	stored, ok := M.LoadOrStore(uuid, mapping)
+	if !ok {
+		if res, ok := stored.(map[string]*ResponseMessage); ok {
+			res[transaction.Hash().String()] = nil
+		}
+	}
 	if err != nil {
 		return err
 	}
@@ -213,6 +227,7 @@ func (c *Controller) UpdatePushPaymentAccounts(id string, data string, key strin
 }
 
 // 入池数据之供应商生产计划信息
+// 入口参数：id；params：交易年月_tradeYearMonth；哈希值_hash；所有权_owner
 func (c *Controller) IssuePoolPlanInformation(id string, params string, data string, key string) error {
 	_, err := c.session.AsyncIssuePoolPlanInformation(invokeIssuePoolPlanInformationHandler, id, params, data, key)
 	if err != nil {

@@ -36,28 +36,26 @@ type packedFinancingMessage struct {
 	signed        []byte
 }
 
-//特别针对发票信息的Message结构体
+// 特别针对发票信息的Message结构体
 type packedInvoiceMessage struct {
+	uuid          string
 	header        string
 	params        string
 	cipher        []byte
 	encryptionKey []byte
-	signed        []byte
 }
 
 type packedHistoricalMessage struct {
-	header                     string
-	tradeYearMonthandfinanceId string
-	cipher                     []byte
-	encryptionKey              []byte
-	signed                     []byte
+	header        string
+	params        string
+	cipher        []byte
+	encryptionKey []byte
 }
 type packedPoolMessage struct {
-	header         string
-	tradeYearMonth string
-	cipher         []byte
-	encryptionKey  []byte
-	signed         []byte
+	header        string
+	params        string
+	cipher        []byte
+	encryptionKey []byte
 }
 
 func NewPools() *Pools {
@@ -83,7 +81,7 @@ func (p *Pools) Insert(packed packedMessage, name string, poolType string) {
 	}
 }
 
-//特别针对发票信息的Insert函数
+// 特别针对发票信息的Insert函数
 func (p *Pools) InsertInvoice(packed packedInvoiceMessage, name string, poolType string) {
 	if !verify(name) {
 		panic("指定方法名称错误")
@@ -211,7 +209,7 @@ func (e *encryptedPool) insertMessage(packed packedMessage, name string) {
 	e.encryptedMessageMutex.Unlock()
 }
 
-//特别针对发票信息的insertMessage
+// 特别针对发票信息的insertMessage
 func (e *encryptedPool) insertInvoiceMessage(packed packedInvoiceMessage, name string) {
 	e.encryptedMessageMutex.Lock()
 	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
@@ -256,7 +254,7 @@ func (p *pendingPool) insertMessage(packed packedMessage, name string) {
 	p.pendingPoolMutex.Unlock()
 }
 
-//特别针对发票信息的insertMessage
+// 特别针对发票信息的insertMessage
 func (p *pendingPool) insertInvoiceMessage(packed packedInvoiceMessage, name string) {
 	p.pendingPoolMutex.Lock()
 	p.pendingMessage[name] = append(p.pendingMessage[name], packed)

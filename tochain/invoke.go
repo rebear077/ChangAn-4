@@ -92,6 +92,7 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 		fmt.Printf("%v\n", err)
 		return
 	}
+
 	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
 	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "issueInvoiceInformationStorage", receipt)
 	if err != nil {
@@ -103,15 +104,45 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(IssueInvoiceInformation, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		M.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			_, ok := M.LoadOrStore(uuid, mapping)
+			if !ok {
+				logs.Fatalln("sync.map error")
+			}
+			return ok
+		})
 	} else {
-		issueinvoiceCounterMutex.Lock()
-		issueinvoiceCounter += 1
-		issueinvoiceCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		M.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			_, ok := M.LoadOrStore(uuid, mapping)
+			if !ok {
+				logs.Fatalln("sync.map error")
+			}
+			return ok
+		})
 	}
 }
 

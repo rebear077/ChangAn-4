@@ -2,6 +2,7 @@ package receive
 
 // 发票信息推送接口
 type InvoiceInformation struct {
+	UUID            string         `json:"-"`
 	Certificateid   string         `json:"certificateId"`
 	Customerid      string         `json:"customerId"`
 	Corpname        string         `json:"corpName"`
@@ -126,6 +127,12 @@ type CollectionAccount struct {
 	Certificatetype string `json:"CertificateType"`
 	Intercustomerid string `json:"InterCustomerId"`
 }
+
+type SelectedInfosAndFinancingApplication struct {
+	FinancingApplication FinancingIntention `json:"FinancingApplication"`
+	Invoice              []InvoiceInfo      `json:"invoice"`
+}
+
 type SelectedInfoToApplication struct {
 	Invoice     []InvoiceInfo        `json:"invoice"`
 	HistoryInfo []TransactionHistory `json:"historyInfo"`

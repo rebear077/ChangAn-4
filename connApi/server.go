@@ -7,36 +7,51 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/google/uuid"
 	logloader "github.com/rebear077/changan/logs"
+	uptoChain "github.com/rebear077/changan/tochain"
+	"github.com/sirupsen/logrus"
 )
 
 var logs = logloader.NewLog()
 
 type FrontEnd struct {
-	InvoicePool                    []*InvoiceInformation
-	TransactionHistoryPool         []*TransactionHistory
-	EnterpoolDataPool              []*EnterpoolData
-	FinancingIntentionPool         []*FinancingIntention
-	CollectionAccountPool          []*CollectionAccount
-	SelectedInfoToApplicationData  []*SelectedInfoToApplication
-	Invoicemutex                   sync.RWMutex
-	TransactionHistorymutex        sync.RWMutex
-	EnterpoolDatamutex             sync.RWMutex
-	FinancingIntentionmutex        sync.RWMutex
-	CollectionAccountmutex         sync.RWMutex
-	SelectedInfoToApplicationMutex sync.RWMutex
-	Ok                             chan bool
+	Response map[string]*ResponseMessage
+
+	InvoicePool                             map[string]*InvoiceInformation
+	TransactionHistoryPool                  []*TransactionHistory
+	EnterpoolDataPool                       []*EnterpoolData
+	FinancingIntentionWithSelectedInfosPool []*SelectedInfosAndFinancingApplication
+	CollectionAccountPool                   []*CollectionAccount
+
+	IssueInvoicemutex                        sync.RWMutex
+	TransactionHistorymutex                  sync.RWMutex
+	EnterpoolDatamutex                       sync.RWMutex
+	FinancingIntentionWithSelectedInfosMutex sync.RWMutex
+	CollectionAccountmutex                   sync.RWMutex
+
+	IssueInvoiceChan       chan [3]int
+	HistoryInfoChan        chan map[string][3]int
+	PoolInfoChan           chan map[string][3]int
+	FinancingIntentionChan chan [3]int
+	PushPaymentAccountChan chan [3]int
+}
+type ResponseMessage struct {
+	UUID    string
+	Message string
 }
 
 func NewFrontEnd() *FrontEnd {
 	return &FrontEnd{
-		InvoicePool:                   make([]*InvoiceInformation, 0),
-		TransactionHistoryPool:        make([]*TransactionHistory, 0),
-		EnterpoolDataPool:             make([]*EnterpoolData, 0),
-		FinancingIntentionPool:        make([]*FinancingIntention, 0),
-		CollectionAccountPool:         make([]*CollectionAccount, 0),
-		SelectedInfoToApplicationData: make([]*SelectedInfoToApplication, 0),
-		Ok:                            make(chan bool),
+		InvoicePool:                             make(map[string]*InvoiceInformation, 0),
+		TransactionHistoryPool:                  make([]*TransactionHistory, 0),
+		EnterpoolDataPool:                       make([]*EnterpoolData, 0),
+		FinancingIntentionWithSelectedInfosPool: make([]*SelectedInfosAndFinancingApplication, 0),
+		CollectionAccountPool:                   make([]*CollectionAccount, 0),
+		IssueInvoiceChan:                        make(chan [3]int),
+		HistoryInfoChan:                         make(chan map[string][3]int),
+		PoolInfoChan:                            make(chan map[string][3]int),
+		FinancingIntentionChan:                  make(chan [3]int),
 	}
 }
 func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request *http.Request) {
@@ -64,13 +79,25 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
 				} else {
-					jsonData := sucessCode()
-					f.Invoicemutex.Lock()
-					// fmt.Println(message)
-					f.InvoicePool = append(f.InvoicePool, &message)
-					f.Invoicemutex.Unlock()
+					id, err := uuid.NewUUID()
+					if err != nil {
+						logrus.Fatalf("newChannelMessage error: %v", err)
+					}
+					// jsonData := sucessCode()
+					message.UUID = id.String()
+					f.IssueInvoicemutex.Lock()
+					f.InvoicePool[id.String()] = &message
+					f.IssueInvoicemutex.Unlock()
 					//TODO
-					//handling
+					var jsonData string
+					uptoChain.M.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								jsonData = "xxxx"
+							}
+						}
+						return true
+					})
 					fmt.Fprint(writer, jsonData)
 				}
 			} else {
@@ -182,8 +209,8 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 	}
 }
 
-// 提交融资意向接口
-func (f *FrontEnd) HandleFinancingIntention(writer http.ResponseWriter, request *http.Request) {
+// 提交融资意向接口，与所勾选的发票数据一同接收
+func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.ResponseWriter, request *http.Request) {
 	pubKey, err := ioutil.ReadFile("./connApi/confs/public.pem")
 	if err != nil {
 		logs.Info(err)
@@ -203,16 +230,15 @@ func (f *FrontEnd) HandleFinancingIntention(writer http.ResponseWriter, request 
 		}
 		if res {
 			if checkTimeStamp(formatTimeStr) {
-				var message FinancingIntention
+				var message SelectedInfosAndFinancingApplication
 				if json.NewDecoder(request.Body).Decode(&message) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
 				} else {
 					jsonData := sucessCode()
-					f.FinancingIntentionmutex.Lock()
-					f.FinancingIntentionPool = append(f.FinancingIntentionPool, &message)
-					// fmt.Println(message)
-					f.FinancingIntentionmutex.Unlock()
+					f.FinancingIntentionWithSelectedInfosMutex.Lock()
+					f.FinancingIntentionWithSelectedInfosPool = append(f.FinancingIntentionWithSelectedInfosPool, &message)
+					f.FinancingIntentionWithSelectedInfosMutex.Unlock()
 					fmt.Fprint(writer, jsonData)
 				}
 			} else {
@@ -279,35 +305,35 @@ func (f *FrontEnd) HandleCollectionAccount(writer http.ResponseWriter, request *
 	}
 }
 
-// 处理选取借贷的数据
-func (f *FrontEnd) HandleSelectedToApplication(writer http.ResponseWriter, request *http.Request) {
-	// request.Header.Set("Connection", "close")
-	var message SelectedInfoToApplication
-	if json.NewDecoder(request.Body).Decode(&message) != nil {
-		jsonData := wrongJsonType()
-		fmt.Fprint(writer, jsonData)
-	} else {
-		//返回成功字段
-		fmt.Println(message)
-		f.SelectedInfoToApplicationMutex.Lock()
-		f.SelectedInfoToApplicationData = append(f.SelectedInfoToApplicationData, &message)
-		f.SelectedInfoToApplicationMutex.Unlock()
-		fmt.Println(len(f.SelectedInfoToApplicationData))
-		select {
-		case res := <-f.Ok:
-			if res {
-				jsonData := sucessCode()
-				fmt.Fprint(writer, jsonData)
-				return
-			} else {
-				jsonData := failedCode()
-				fmt.Fprintln(writer, jsonData)
-				return
-			}
-		}
+// // 处理选取借贷的数据
+// func (f *FrontEnd) HandleSelectedToApplication(writer http.ResponseWriter, request *http.Request) {
+// 	// request.Header.Set("Connection", "close")
+// 	var message SelectedInfoToApplication
+// 	if json.NewDecoder(request.Body).Decode(&message) != nil {
+// 		jsonData := wrongJsonType()
+// 		fmt.Fprint(writer, jsonData)
+// 	} else {
+// 		//返回成功字段
+// 		fmt.Println(message)
+// 		f.SelectedInfoToApplicationMutex.Lock()
+// 		f.SelectedInfoToApplicationData = append(f.SelectedInfoToApplicationData, &message)
+// 		f.SelectedInfoToApplicationMutex.Unlock()
+// 		fmt.Println(len(f.SelectedInfoToApplicationData))
+// 		select {
+// 		case res := <-f.Ok:
+// 			if res {
+// 				jsonData := sucessCode()
+// 				fmt.Fprint(writer, jsonData)
+// 				return
+// 			} else {
+// 				jsonData := failedCode()
+// 				fmt.Fprintln(writer, jsonData)
+// 				return
+// 			}
+// 		}
 
-	}
-}
+//		}
+//	}
 func check(err error) {
 	if err != nil {
 		logs.Fatalln(err)

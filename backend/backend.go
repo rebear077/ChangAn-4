@@ -119,8 +119,8 @@ func (s *Server) DataEncryption(data []byte) ([]byte, []byte, []byte, error) {
 }
 
 // 发票信息
-func (s *Server) IssueInvoiceInformation(id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueInvoiceInformation(id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueInvoiceInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueInvoiceInformation(uuid, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {

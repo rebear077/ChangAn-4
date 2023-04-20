@@ -16,6 +16,15 @@ import (
 	uptoChain "github.com/rebear077/changan/tochain"
 )
 
+const (
+	PoolPlanInfos             = "poolPlan"
+	PoolUsedInfos             = "poolUsed"
+	HistoricalOrderInfos      = "hisOrder"
+	HistoricalReceivableInfos = "hisReceivable"
+	HistoricalSettleInfos     = "hisSettle"
+	HistoricalUsedInfos       = "hisUsed"
+)
+
 var logs = logloader.NewLog()
 
 type Promoter struct {
@@ -53,78 +62,82 @@ func (p *Promoter) Start() {
 	for {
 		if p.monitor.VerifyChainStatus() {
 			p.InvoiceInfoHandler()
-			p.SupplierFinancingApplicationInfoHandler()
+			p.SupplierFinancingApplicationInfoWithSelectedInfosHandler()
 			p.HistoricalInfoHandler()
 			p.PushPaymentAccountsInfoHandler()
 			p.PoolInfoHandler()
-			p.SelectedInfoToApplicationHandler()
 		} else {
 			time.Sleep(5 * time.Second)
 		}
 	}
 }
-func (p *Promoter) SelectedInfoToApplicationHandler() {
-	if len(p.DataApi.SelectedInfoToApplicationData) != 0 {
-		fmt.Println("....")
-		p.DataApi.SelectedInfoToApplicationMutex.Lock()
-		message := p.DataApi.SelectedInfoToApplicationData
-		p.DataApi.SelectedInfoToApplicationData = nil
-		p.DataApi.SelectedInfoToApplicationMutex.Unlock()
-		//计算哈希
-		fmt.Println(len(message))
-		// invoice, history, pool := server.PackInfo(*message[0])
-		//TODO
-		p.DataApi.Ok <- true
-	}
-}
+
 func (p *Promoter) InvoiceInfoHandler() {
 	if len(p.DataApi.InvoicePool) != 0 {
-		logs.Infoln(len(p.DataApi.InvoicePool))
 		logs.Infoln("开始同步发票信息")
 		var wg sync.WaitGroup
-		invoices := make([]*receive.InvoiceInformation, 0)
-		p.DataApi.Invoicemutex.Lock()
-		invoices = append(invoices, p.DataApi.InvoicePool...)
-		p.DataApi.InvoicePool = nil
-		p.DataApi.Invoicemutex.Unlock()
-		mapping := server.EncodeInvoiceInformation(invoices)
-		logs.Infoln(len(mapping))
-		for index := range mapping {
-			for header, info := range mapping[index] {
-				wg.Add(1)
-				tempheader := header
-				tempinfo := info
-				go func(tempheader string, tempinfo string) {
-					p.packInvoiceInfo(tempheader, tempinfo, "fast", "invoice")
-					wg.Done()
-				}(tempheader, tempinfo)
+		invoices := make(map[string]*receive.InvoiceInformation, 0)
+		p.DataApi.IssueInvoicemutex.Lock()
+		invoices = p.DataApi.InvoicePool
+		for uuid := range p.DataApi.InvoicePool {
+			delete(p.DataApi.InvoicePool, uuid)
+		}
+		p.DataApi.IssueInvoicemutex.Unlock()
+		invoiceMapping := server.EncodeInvoiceInformation(invoices)
+		for uuid, invoices := range invoiceMapping {
+			for _, invoice := range invoices {
+				for id, info := range invoice {
+					wg.Add(1)
+					tempheader := id
+					tempinfo := info
+					UUID := uuid
+					go func(UUID string, tempheader string, tempinfo string) {
+						p.packInvoiceInfo(UUID, tempheader, tempinfo, "fast", "invoice")
+						wg.Done()
+					}(UUID, tempheader, tempinfo)
+				}
 			}
 		}
 		wg.Wait()
 		messages := p.encryptedPool.QueryMessages("invoice", "fast")
 		for _, message := range messages {
 			temp, _ := message.(packedInvoiceMessage)
-			err := p.server.IssueInvoiceInformation(temp.header, temp.params, temp.cipher, temp.encryptionKey)
+			err := p.server.IssueInvoiceInformation(temp.uuid, temp.header, temp.params, temp.cipher, temp.encryptionKey)
 			if err != nil {
 				logs.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
 			}
 		}
 		for {
-			errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.IssueInvoiceInformation)
-			success := uptoChain.QueryIssueInvoiceSuccessCounter()
-			if errNum+success == len(messages) {
-				if errNum != 0 {
-					mapping := errorhandle.ERRDealer.QueryInvoiceInfoPool()
-					for _, value := range mapping {
-						WriteToFile(value + "\n")
-					}
-					errorhandle.ERRDealer.DeleteErrorIssueInvoiceInformationStoragePool()
-				}
-				// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
-				logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
-				uptoChain.ResetInvoiceSuccessCounter()
+			counter := 0
+			uptoChain.M.Range(func(key, value interface{}) bool {
+				mapping := value.(map[string]*uptoChain.ResponseMessage)
+				counter += len(mapping)
+				return true
+			})
+			if counter == len(messages) {
+				//TODO
+
 				break
 			}
+			// if errNum+success == len(messages) {
+			// 	if errNum != 0 {
+			// 		errorInvoices := errorhandle.ERRDealer.GetErrorInfo(uptoChain.IssueInvoiceInformation)
+			// 		for transactionHash, data := range errorInvoices {
+			// 			parseRet, ok := data.([]interface{})
+			// 			if !ok {
+			// 				logs.Fatalln("解析失败")
+			// 			}
+			// 			info := transactionHash + parseRet[0].(string)
+			// 			WriteToFile(info + "\n")
+			// 		}
+			// 		errorhandle.ERRDealer.DeleteError(uptoChain.IssueInvoiceInformation)
+			// 	}
+			// 	logs.Infof("同步完成，共计%d条数据,成功%d,失败%d", len(messages), success, errNum)
+			// 	uptoChain.ResetIssueInvoiceSuccessCounter()
+			// 	results := [3]int{len(messages), success, errNum}
+			// 	p.DataApi.IssueInvoiceChan <- results
+			// 	break
+			// }
 		}
 	}
 }
@@ -161,114 +174,155 @@ func (p *Promoter) HistoricalInfoHandler() {
 		hisReceivableMessage := p.encryptedPool.QueryMessages("historicalReceivable", "fast")
 		for _, message := range hisUsedMessage {
 			tempUsed, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalUsedInformation(tempUsed.header, tempUsed.tradeYearMonthandfinanceId, tempUsed.cipher, tempUsed.encryptionKey, tempUsed.signed)
+			err := p.server.IssueHistoricalUsedInformation(tempUsed.header, tempUsed.params, tempUsed.cipher, tempUsed.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempUsed.header, "失败信息为:", err)
 			}
 		}
 		for _, message := range hisSettleMessage {
 			tempSettle, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalSettleInformation(tempSettle.header, tempSettle.tradeYearMonthandfinanceId, tempSettle.cipher, tempSettle.encryptionKey, tempSettle.signed)
+			err := p.server.IssueHistoricalSettleInformation(tempSettle.header, tempSettle.params, tempSettle.cipher, tempSettle.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempSettle.header, "失败信息为:", err)
 			}
 		}
 		for _, message := range hisOrderMessage {
 			tempOrder, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalOrderInformation(tempOrder.header, tempOrder.tradeYearMonthandfinanceId, tempOrder.cipher, tempOrder.encryptionKey, tempOrder.signed)
+			err := p.server.IssueHistoricalOrderInformation(tempOrder.header, tempOrder.params, tempOrder.cipher, tempOrder.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempOrder.header, "失败信息为:", err)
 			}
 		}
 		for _, message := range hisReceivableMessage {
 			tempReceivable, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalReceivableInformation(tempReceivable.header, tempReceivable.tradeYearMonthandfinanceId, tempReceivable.cipher, tempReceivable.encryptionKey, tempReceivable.signed)
+			err := p.server.IssueHistoricalReceivableInformation(tempReceivable.header, tempReceivable.params, tempReceivable.cipher, tempReceivable.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempReceivable.header, "失败信息为:", err)
 			}
 		}
 		wg.Add(4)
+		var hisUsedTotal int
+		var hisUsedSuccess int
+		var hisUsedError int
 		go func() {
 			for {
-				errNum := errorhandle.ERRDealer.GetHistoricalUsedInfoPoolLength()
+				errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.HistoricalUsedInformation)
 				success := uptoChain.QueryHistoricalUsedCounter()
 				if errNum+success == len(hisUsedMessage) {
-					if errNum != 0 {
-						mapping := errorhandle.ERRDealer.QueryHistoricalUsedInfoPool()
-						for _, value := range mapping {
-							WriteToFile(value + "\n")
-						}
-						errorhandle.ERRDealer.DeleteErrorIssueHistoricalUsedInformationPool()
-					}
+					// if errNum != 0 {
+					// 	errorHisUsed := errorhandle.ERRDealer.GetErrorInfo(uptoChain.HistoricalUsedInformation)
+					// 	for transactionHash, data := range errorHisUsed {
+					// 		parseRet, ok := data.([]interface{})
+					// 		if !ok {
+					// 			logs.Fatalln("解析失败")
+					// 		}
+					// 		info := transactionHash +
+					// 			WriteToFile(value+"\n")
+					// 	}
+					// 	errorhandle.ERRDealer.DeleteErrorIssueHistoricalUsedInformationPool()
+					// }
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisUsedMessage), success, errNum)
 					uptoChain.ResetHistoricalUsedCounter()
+					hisUsedTotal = len(hisUsedMessage)
+					hisUsedSuccess = success
+					hisUsedError = errNum
 					break
 				}
 			}
 			wg.Done()
+
 		}()
+
+		var hisSettleTotal int
+		var hisSettleError int
+		var hisSettleSuccess int
 		go func() {
 			for {
-				errNum := errorhandle.ERRDealer.GetHistoricalSettleInfoPoolLength()
+				errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.HistoricalSettleInformation)
 				success := uptoChain.QueryHistoricalSettleCounter()
 				if errNum+success == len(hisSettleMessage) {
-					if errNum != 0 {
-						mapping := errorhandle.ERRDealer.QueryHistoricalSettleInfoPool()
-						for _, value := range mapping {
-							WriteToFile(value + "\n")
-						}
-						errorhandle.ERRDealer.DeleteErrorIssueHistoricalSettleInformationPool()
-					}
+					// if errNum != 0 {
+					// 	mapping := errorhandle.ERRDealer.QueryHistoricalSettleInfoPool()
+					// 	for _, value := range mapping {
+					// 		WriteToFile(value + "\n")
+					// 	}
+					// 	errorhandle.ERRDealer.DeleteErrorIssueHistoricalSettleInformationPool()
+					// }
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisSettleMessage), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisSettleMessage), success, errNum)
 					uptoChain.ResetHistoricalSettleCounter()
+					hisSettleTotal += len(hisSettleMessage)
+					hisSettleError += errNum
+					hisSettleSuccess += success
 					break
 				}
 			}
 			wg.Done()
 		}()
+		var hisOrderTotal int
+		var hisOrderSuccess int
+		var hisOrderError int
 		go func() {
 			for {
-				errNum := errorhandle.ERRDealer.GetHistoricalOrderInfoPoolLength()
+				errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.HistoricalOrderInformation)
 				success := uptoChain.QueryHistoricalOrderCounter()
 				if errNum+success == len(hisOrderMessage) {
-					if errNum != 0 {
-						mapping := errorhandle.ERRDealer.QueryHistoricalOrderInfoPool()
-						for _, value := range mapping {
-							WriteToFile(value + "\n")
-						}
-						errorhandle.ERRDealer.DeleteErrorIssueHistoricalOrderInformationPool()
-					}
+					// if errNum != 0 {
+					// 	mapping := errorhandle.ERRDealer.QueryHistoricalOrderInfoPool()
+					// 	for _, value := range mapping {
+					// 		WriteToFile(value + "\n")
+					// 	}
+					// 	errorhandle.ERRDealer.DeleteErrorIssueHistoricalOrderInformationPool()
+					// }
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisOrderMessage), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisOrderMessage), success, errNum)
 					uptoChain.ResetHistoricalOrderCounter()
+					hisOrderTotal = len(hisOrderMessage)
+					hisOrderSuccess = success
+					hisOrderError = errNum
 					break
 				}
 			}
 			wg.Done()
 		}()
+		var hisReceivableTotal int
+		var hisReceivableError int
+		var hisReceivableSuccess int
 		go func() {
 			for {
-				errNum := errorhandle.ERRDealer.GetHistoricalReceivableInfoPoolLength()
+				errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.HistoricalReceivableInformation)
 				success := uptoChain.QueryHistoricalReceivableCounter()
 				if errNum+success == len(hisReceivableMessage) {
-					if errNum != 0 {
-						mapping := errorhandle.ERRDealer.QueryHistoricalReceivableInfoPool()
-						for _, value := range mapping {
-							WriteToFile(value + "\n")
-						}
-						errorhandle.ERRDealer.DeleteErrorIssueHistoricalReceivableInformationPool()
-					}
+					// if errNum != 0 {
+					// 	mapping := errorhandle.ERRDealer.QueryHistoricalReceivableInfoPool()
+					// 	for _, value := range mapping {
+					// 		WriteToFile(value + "\n")
+					// 	}
+					// 	errorhandle.ERRDealer.DeleteErrorIssueHistoricalReceivableInformationPool()
+					// }
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisReceivableMessage), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(hisReceivableMessage), success, errNum)
 					uptoChain.ResetHistoricalReceivableCounter()
+					hisReceivableTotal = len(hisReceivableMessage)
+					hisReceivableSuccess = success
+					hisReceivableError = errNum
 					break
 				}
 			}
 			wg.Done()
 		}()
 		wg.Wait()
-
+		hisOrder := [3]int{hisOrderTotal, hisOrderSuccess, hisOrderError}
+		hisReceivable := [3]int{hisReceivableTotal, hisReceivableSuccess, hisReceivableError}
+		hisSettle := [3]int{hisSettleTotal, hisSettleSuccess, hisSettleError}
+		hisUsed := [3]int{hisUsedTotal, hisUsedSuccess, hisUsedError}
+		historyInfos := make(map[string][3]int)
+		historyInfos[HistoricalOrderInfos] = hisOrder
+		historyInfos[HistoricalReceivableInfos] = hisReceivable
+		historyInfos[HistoricalSettleInfos] = hisSettle
+		historyInfos[HistoricalUsedInfos] = hisUsed
+		p.DataApi.HistoryInfoChan <- historyInfos
+		logs.Println("退出")
 	}
 }
 func (p *Promoter) PoolInfoHandler() {
@@ -309,77 +363,93 @@ func (p *Promoter) PoolInfoHandler() {
 		usedMessages := p.encryptedPool.QueryMessages("poolUsed", "fast")
 		for _, message := range planMessages {
 			tempPlan, _ := message.(packedPoolMessage)
-			err := p.server.IssuePoolPlanInformation(tempPlan.header, tempPlan.tradeYearMonth, tempPlan.cipher, tempPlan.encryptionKey, tempPlan.signed)
+			err := p.server.IssuePoolPlanInformation(tempPlan.header, tempPlan.params, tempPlan.cipher, tempPlan.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempPlan.header, "失败信息为:", err)
 			}
 		}
 		for _, message := range usedMessages {
 			tempUsed, _ := message.(packedPoolMessage)
-			err := p.server.IssuePoolUsedInformation(tempUsed.header, tempUsed.tradeYearMonth, tempUsed.cipher, tempUsed.encryptionKey, tempUsed.signed)
+			err := p.server.IssuePoolUsedInformation(tempUsed.header, tempUsed.params, tempUsed.cipher, tempUsed.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempUsed.header, "失败信息为:", err)
 			}
 
 		}
 		wg.Add(2)
+		var poolPlanTotal int
+		var poolPlanSuccess int
+		var poolPlanError int
 		go func() {
 			for {
-				errNum := errorhandle.ERRDealer.GetPoolPlanInfoPoolLength()
+				errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.PoolPlanInfo)
 				success := uptoChain.QueryPoolPlanCounter()
 				if errNum+success == len(planMessages) {
-					if errNum != 0 {
-						mapping := errorhandle.ERRDealer.QueryPoolPlanInfoPool()
-						for _, value := range mapping {
-							WriteToFile(value + "\n")
-						}
-						errorhandle.ERRDealer.DeleteErrorIssuePoolPlanInformationPool()
-					}
+					// if errNum != 0 {
+					// 	mapping := errorhandle.ERRDealer.QueryPoolPlanInfoPool()
+					// 	for _, value := range mapping {
+					// 		WriteToFile(value + "\n")
+					// 	}
+					// 	errorhandle.ERRDealer.DeleteErrorIssuePoolPlanInformationPool()
+					// }
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(planMessages), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(planMessages), success, errNum)
 					uptoChain.ResetPoolPlanCounter()
+					poolPlanTotal = len(planMessages)
+					poolPlanSuccess = success
+					poolPlanError = errNum
 					break
 				}
 			}
 			wg.Done()
 		}()
+		var poolUsedTotal int
+		var poolUsedSuccess int
+		var poolUsedError int
 		go func() {
 			for {
-				errNum := errorhandle.ERRDealer.GetPoolUsedInfoPoolLength()
+				errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.PoolUsedInfo)
 				success := uptoChain.QueryPoolUsedCounter()
 				if errNum+success == len(usedMessages) {
-					if errNum != 0 {
-						mapping := errorhandle.ERRDealer.QueryHistoricalUsedInfoPool()
-						for _, value := range mapping {
-							WriteToFile(value + "\n")
-						}
-						errorhandle.ERRDealer.DeleteErrorIssuePoolUsedInformationPool()
-					}
+					// if errNum != 0 {
+					// 	mapping := errorhandle.ERRDealer.QueryHistoricalUsedInfoPool()
+					// 	for _, value := range mapping {
+					// 		WriteToFile(value + "\n")
+					// 	}
+					// 	errorhandle.ERRDealer.DeleteErrorIssuePoolUsedInformationPool()
+					// }
 					// logrus.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(usedMessages), success, errNum)
 					logs.Infof("同步完成，共计%d条数据，成功%d,失败%d", len(usedMessages), success, errNum)
 					uptoChain.ResetPoolUsedCounter()
+					poolUsedTotal = len(usedMessages)
+					poolUsedSuccess = success
+					poolUsedError = errNum
 					break
 				}
 			}
 			wg.Done()
 		}()
 		wg.Wait()
-		// logrus.Println("退出")
+		poolPlan := [3]int{poolPlanTotal, poolPlanSuccess, poolPlanError}
+		poolUsed := [3]int{poolUsedTotal, poolUsedSuccess, poolUsedError}
+		poolInfos := make(map[string][3]int)
+		poolInfos[PoolPlanInfos] = poolPlan
+		poolInfos[PoolUsedInfos] = poolUsed
+		p.DataApi.PoolInfoChan <- poolInfos
 		logs.Println("退出")
 	}
 }
 
-func (p *Promoter) SupplierFinancingApplicationInfoHandler() {
-	if len(p.DataApi.FinancingIntentionPool) != 0 {
-		// logrus.Infoln("开始同步融资意向请求信息")
+func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
+	if len(p.DataApi.FinancingIntentionWithSelectedInfosPool) != 0 {
 		logs.Infoln("开始同步融资意向请求信息")
 		var wg sync.WaitGroup
-		finintens := make([]*receive.FinancingIntention, 0)
-		p.DataApi.FinancingIntentionmutex.Lock()
-		finintens = append(finintens, p.DataApi.FinancingIntentionPool...)
-		p.DataApi.FinancingIntentionPool = nil
-		p.DataApi.FinancingIntentionmutex.Unlock()
-		mapping := server.EncodeFinancingIntention(finintens)
+		finintensWithSelectedInfos := make([]*receive.SelectedInfosAndFinancingApplication, 0)
+		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Lock()
+		finintensWithSelectedInfos = append(finintensWithSelectedInfos, p.DataApi.FinancingIntentionWithSelectedInfosPool...)
+		p.DataApi.FinancingIntentionWithSelectedInfosPool = nil
+		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Unlock()
+		selectedInfos, financing := server.HandleFinancingIntentionAndSelectedInfos(finintensWithSelectedInfos)
 		for index := range mapping {
 			for header, info := range mapping[index] {
 				wg.Add(1)
@@ -402,19 +472,21 @@ func (p *Promoter) SupplierFinancingApplicationInfoHandler() {
 			}
 		}
 		for {
-			errNum := errorhandle.ERRDealer.GetSupplierFinancingApplicationPoolLength()
+			errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.SupplierFinancingApplicationInfo)
 			success := uptoChain.QuerySupplierSuccessCounter()
 			if errNum+success == len(messages) {
-				if errNum != 0 {
-					mapping := errorhandle.ERRDealer.QuerySupplierFinancingApplicationPool()
-					for _, value := range mapping {
-						WriteToFile(value + "\n")
-					}
-					errorhandle.ERRDealer.DeleteErrorIssueSupplierFinancingApplicationPool()
-				}
+				// if errNum != 0 {
+				// 	mapping := errorhandle.ERRDealer.QuerySupplierFinancingApplicationPool()
+				// 	for _, value := range mapping {
+				// 		WriteToFile(value + "\n")
+				// 	}
+				// 	errorhandle.ERRDealer.DeleteErrorIssueSupplierFinancingApplicationPool()
+				// }
 				// logrus.Infof("同步融资意向完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				logs.Infof("同步融资意向完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				uptoChain.ResetSupplierSuccessCounter()
+				result := [3]int{len(messages), success, errNum}
+				p.DataApi.FinancingIntentionChan <- result
 				break
 			}
 		}
@@ -444,32 +516,31 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 		}
 		wg.Wait()
 		messages := p.encryptedPool.QueryMessages("payment", "fast")
-		fmt.Println(len(messages))
-		for index, message := range messages {
-			fmt.Println(index)
+		for _, message := range messages {
 			temp, ok := message.(packedMessage)
 			if !ok {
 				fmt.Println("errorerror")
 			}
-
-			err := p.server.IssuePushPaymentAccount(temp.header, temp.cipher, temp.encryptionKey, temp.signed)
+			err := p.server.UpdatePushPaymentAccount(temp.header, temp.cipher, temp.encryptionKey, temp.signed)
 			if err != nil {
 				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
 			}
 		}
 		for {
-			errNum := errorhandle.ERRDealer.GetPushPaymentAccountPoolLength()
+			errNum := errorhandle.ERRDealer.GetErrorLength(uptoChain.UpdatePushPaymentAccounts)
 			success := uptoChain.QueryPaymentAccountsCounter()
 			if errNum+success == len(messages) {
-				if errNum != 0 {
-					mapping := errorhandle.ERRDealer.QueryPushPaymentAccountPool()
-					for _, value := range mapping {
-						WriteToFile(value + "\n")
-					}
-					errorhandle.ERRDealer.DeleteErrorIssuePushPaymentAccountsPool()
-				}
+				// if errNum != 0 {
+				// 	mapping := errorhandle.ERRDealer.QueryPushPaymentAccountPool()
+				// 	for _, value := range mapping {
+				// 		WriteToFile(value + "\n")
+				// 	}
+				// 	errorhandle.ERRDealer.DeleteErrorIssuePushPaymentAccountsPool()
+				// }
 				logs.Infof("回款信息同步完成，共计%d条数据，成功%d,失败%d", len(messages), success, errNum)
 				uptoChain.ResetPaymentAccountsCounter()
+				resluts := [3]int{len(messages), success, errNum}
+				p.DataApi.PushPaymentAccountChan <- resluts
 				break
 			}
 		}
@@ -491,7 +562,8 @@ func (p *Promoter) packInfo(header string, info string, poolType string, method 
 }
 
 // 针对发票信息的packInfo
-func (p *Promoter) packInvoiceInfo(header string, info string, poolType string, method string) {
+// 加密后存入缓存池
+func (p *Promoter) packInvoiceInfo(UUID string, header string, info string, poolType string, method string) {
 	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
 	if err != nil {
 		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
@@ -501,11 +573,10 @@ func (p *Promoter) packInvoiceInfo(header string, info string, poolType string, 
 	fields := strings.Split(info, ",")
 	temp := packedInvoiceMessage{}
 	//参数11是开票日期，参数8是发票类型，参数14是发票号码
+	temp.uuid = UUID
 	temp.params = fields[11] + "," + fields[8] + "," + fields[14] + "," + string(signed) + "," + ""
-	fmt.Println(temp.params)
 	temp.cipher = cipher
 	temp.encryptionKey = encryptionKey
-	temp.signed = signed
 	temp.header = header
 	p.encryptedPool.InsertInvoice(temp, method, poolType)
 }
@@ -544,10 +615,9 @@ func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType s
 				logs.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
 			}
 			temp := packedHistoricalMessage{}
-			temp.tradeYearMonthandfinanceId = tradeYearMonth + "," + financeId
+			temp.params = tradeYearMonth + "," + financeId + "," + string(signed) + "," + ""
 			temp.cipher = cipher
 			temp.encryptionKey = encryptionKey
-			temp.signed = signed
 			temp.header = header
 			p.encryptedPool.InsertHistoricalTrans(temp, method, poolType)
 			wg.Done()
@@ -573,10 +643,9 @@ func (p *Promoter) packPoolInfos(header string, infos []string, poolType string,
 				logs.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
 			}
 			temp := packedPoolMessage{}
-			temp.tradeYearMonth = tradeYearMonth
+			temp.params = tradeYearMonth + "," + string(signed) + "," + ""
 			temp.cipher = cipher
 			temp.encryptionKey = encryptionKey
-			temp.signed = signed
 			temp.header = header
 			p.encryptedPool.InsertPoolData(temp, method, poolType)
 			wg.Done()
