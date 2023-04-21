@@ -30,15 +30,11 @@ type FrontEnd struct {
 	FinancingIntentionWithSelectedInfosMutex sync.RWMutex
 	CollectionAccountmutex                   sync.RWMutex
 
-	IssueInvoiceChan       chan [3]int
-	HistoryInfoChan        chan map[string][3]int
-	PoolInfoChan           chan map[string][3]int
-	FinancingIntentionChan chan [3]int
-	PushPaymentAccountChan chan [3]int
+	IssueInvoiceOKChan chan bool
 }
-type ResponseMessage struct {
-	UUID    string
-	Message string
+type PackedResponse struct {
+	Success map[string]*uptoChain.ResponseMessage
+	Fail    []*uptoChain.ResponseMessage
 }
 
 func NewFrontEnd() *FrontEnd {
@@ -48,10 +44,6 @@ func NewFrontEnd() *FrontEnd {
 		EnterpoolDataPool:                       make([]*EnterpoolData, 0),
 		FinancingIntentionWithSelectedInfosPool: make([]*SelectedInfosAndFinancingApplication, 0),
 		CollectionAccountPool:                   make([]*CollectionAccount, 0),
-		IssueInvoiceChan:                        make(chan [3]int),
-		HistoryInfoChan:                         make(chan map[string][3]int),
-		PoolInfoChan:                            make(chan map[string][3]int),
-		FinancingIntentionChan:                  make(chan [3]int),
 	}
 }
 func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request *http.Request) {
@@ -83,7 +75,6 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					if err != nil {
 						logrus.Fatalf("newChannelMessage error: %v", err)
 					}
-					// jsonData := sucessCode()
 					message.UUID = id.String()
 					f.IssueInvoicemutex.Lock()
 					f.InvoicePool[id.String()] = &message
@@ -93,7 +84,10 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					uptoChain.M.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
-								jsonData = "xxxx"
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+
+								}
 							}
 						}
 						return true
@@ -143,7 +137,6 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 				} else {
 					jsonData := sucessCode()
 					f.TransactionHistorymutex.Lock()
-					// fmt.Println(message)
 					f.TransactionHistoryPool = append(f.TransactionHistoryPool, &message)
 					f.TransactionHistorymutex.Unlock()
 					fmt.Fprint(writer, jsonData)

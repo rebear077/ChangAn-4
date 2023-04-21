@@ -115,29 +115,22 @@ func (p *Promoter) InvoiceInfoHandler() {
 				return true
 			})
 			if counter == len(messages) {
-				//TODO
-
+				p.DataApi.IssueInvoiceOKChan <- true
+				for {
+					flag := 0
+					uptoChain.M.Range(func(key, value interface{}) bool {
+						if key != nil {
+							flag++
+							return false
+						}
+						return true
+					})
+					if flag == 0 {
+						break
+					}
+				}
 				break
 			}
-			// if errNum+success == len(messages) {
-			// 	if errNum != 0 {
-			// 		errorInvoices := errorhandle.ERRDealer.GetErrorInfo(uptoChain.IssueInvoiceInformation)
-			// 		for transactionHash, data := range errorInvoices {
-			// 			parseRet, ok := data.([]interface{})
-			// 			if !ok {
-			// 				logs.Fatalln("解析失败")
-			// 			}
-			// 			info := transactionHash + parseRet[0].(string)
-			// 			WriteToFile(info + "\n")
-			// 		}
-			// 		errorhandle.ERRDealer.DeleteError(uptoChain.IssueInvoiceInformation)
-			// 	}
-			// 	logs.Infof("同步完成，共计%d条数据,成功%d,失败%d", len(messages), success, errNum)
-			// 	uptoChain.ResetIssueInvoiceSuccessCounter()
-			// 	results := [3]int{len(messages), success, errNum}
-			// 	p.DataApi.IssueInvoiceChan <- results
-			// 	break
-			// }
 		}
 	}
 }
