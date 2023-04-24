@@ -16,10 +16,8 @@ import (
 var logs = logloader.NewLog()
 
 type FrontEnd struct {
-	Response map[string]*ResponseMessage
-
-	InvoicePool                             map[string]*InvoiceInformation
-	TransactionHistoryPool                  []*TransactionHistory
+	InvoicePool                             map[string][]*InvoiceInformation
+	TransactionHistoryPool                  map[string]*TransactionHistory
 	EnterpoolDataPool                       []*EnterpoolData
 	FinancingIntentionWithSelectedInfosPool []*SelectedInfosAndFinancingApplication
 	CollectionAccountPool                   []*CollectionAccount
@@ -30,17 +28,24 @@ type FrontEnd struct {
 	FinancingIntentionWithSelectedInfosMutex sync.RWMutex
 	CollectionAccountmutex                   sync.RWMutex
 
-	IssueInvoiceOKChan chan bool
+	IssueInvoiceOKChan     chan bool
+	IssueHistoryInfoOKChan chan bool
 }
 type PackedResponse struct {
 	Success map[string]*uptoChain.ResponseMessage
-	Fail    []*uptoChain.ResponseMessage
+	Fail    map[string]*uptoChain.ResponseMessage
 }
 
+func NewPackedResponse() *PackedResponse {
+	return &PackedResponse{
+		Success: make(map[string]*uptoChain.ResponseMessage),
+		Fail:    make(map[string]*uptoChain.ResponseMessage),
+	}
+}
 func NewFrontEnd() *FrontEnd {
 	return &FrontEnd{
-		InvoicePool:                             make(map[string]*InvoiceInformation, 0),
-		TransactionHistoryPool:                  make([]*TransactionHistory, 0),
+		InvoicePool:                             make(map[string][]*InvoiceInformation, 0),
+		TransactionHistoryPool:                  make(map[string]*TransactionHistory, 0),
 		EnterpoolDataPool:                       make([]*EnterpoolData, 0),
 		FinancingIntentionWithSelectedInfosPool: make([]*SelectedInfosAndFinancingApplication, 0),
 		CollectionAccountPool:                   make([]*CollectionAccount, 0),
@@ -66,7 +71,7 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 		}
 		if res {
 			if checkTimeStamp(formatTimeStr) {
-				var message InvoiceInformation
+				var message []*InvoiceInformation
 				if json.NewDecoder(request.Body).Decode(&message) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
@@ -79,16 +84,21 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					f.IssueInvoicemutex.Lock()
 					f.InvoicePool[id.String()] = &message
 					f.IssueInvoicemutex.Unlock()
-					//TODO
-					var jsonData string
+					<-f.IssueInvoiceOKChan
+					jsonData := NewPackedResponse()
 					uptoChain.M.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
-
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
 								}
 							}
+							uptoChain.M.Delete(uuid)
 						}
 						return true
 					})
@@ -135,10 +145,31 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
 				} else {
-					jsonData := sucessCode()
+					id, err := uuid.NewUUID()
+					if err != nil {
+						logrus.Fatalf("newChannelMessage error: %v", err)
+					}
+					message.UUID = id.String()
 					f.TransactionHistorymutex.Lock()
-					f.TransactionHistoryPool = append(f.TransactionHistoryPool, &message)
+					f.TransactionHistoryPool[id.String()] = &message
 					f.TransactionHistorymutex.Unlock()
+					<-f.IssueHistoryInfoOKChan
+					jsonData := NewPackedResponse()
+					uptoChain.M.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
+								}
+							}
+						}
+						return true
+					})
 					fmt.Fprint(writer, jsonData)
 				}
 			} else {

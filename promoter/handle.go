@@ -139,10 +139,12 @@ func (p *Promoter) HistoricalInfoHandler() {
 	if len(p.DataApi.TransactionHistoryPool) != 0 {
 		logs.Infoln("开始历史交易信息")
 		var wg sync.WaitGroup
-		hisinfos := make([]*receive.TransactionHistory, 0)
+		hisinfos := make(map[string]*receive.TransactionHistory, 0)
 		p.DataApi.TransactionHistorymutex.Lock()
-		hisinfos = append(hisinfos, p.DataApi.TransactionHistoryPool...)
-		p.DataApi.TransactionHistoryPool = nil
+		hisinfos = p.DataApi.TransactionHistoryPool
+		for uuid := range p.DataApi.TransactionHistoryPool {
+			delete(p.DataApi.TransactionHistoryPool, uuid)
+		}
 		p.DataApi.TransactionHistorymutex.Unlock()
 		mapping := server.EncodeTransactionHistory(hisinfos)
 		for index := range mapping {

@@ -28,6 +28,7 @@ type Invoiceinfos struct {
 
 // 推送历史交易信息接口
 type TransactionHistory struct {
+	UUID            string            `json:"-"`
 	Customergrade   string            `json:"customerGrade"`
 	Certificatetype string            `json:"certificateType"`
 	Intercustomerid string            `json:"interCustomerId"`

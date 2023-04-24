@@ -26,6 +26,14 @@ type ResponseMessage struct {
 	message string
 	ok      bool
 }
+
+func (rsp *ResponseMessage) GetWhetherOK() bool {
+	return rsp.ok
+}
+func (rsp *ResponseMessage) GetMessage() string {
+	return rsp.message
+}
+
 type Controller struct {
 	conn      *client.Client
 	session   *smartcontract.HostFactoryControllerSession

@@ -129,55 +129,59 @@ func EncodeInvoiceInformation(list map[string]*receive.InvoiceInformation) map[s
 	}
 	return resMap
 }
-func EncodeTransactionHistory(list []*receive.TransactionHistory) map[int]map[string]string {
+func EncodeTransactionHistory(list map[string]*receive.TransactionHistory) map[string]map[int]map[string]string {
+	resMap := make(map[string]map[int]map[string]string)
 	mapping := make(map[int]map[string]string)
-	for index, l := range list {
-		mapping[index] = make(map[string]string)
-		header := l.Customerid
-		baseStr := l.Customergrade + "," + l.Certificatetype + "," + l.Intercustomerid + "," + l.Corpname + "," + l.Financeid + "," + l.Certificateid + "," + l.Customerid
-		var usedinfos string
-		usedinfos = "["
-		for n, u := range l.Usedinfos {
-			usedinfos += u.Tradeyearmonth + "," + u.Usedamount + "," + u.Ccy
-			if n != len(l.Usedinfos)-1 {
-				usedinfos += "|"
-			} else {
-				usedinfos += "]"
+	for UUID, historyInfos := range list {
+		for index, l := range list {
+			mapping[index] = make(map[string]string)
+			header := l.Customerid
+			baseStr := l.Customergrade + "," + l.Certificatetype + "," + l.Intercustomerid + "," + l.Corpname + "," + l.Financeid + "," + l.Certificateid + "," + l.Customerid
+			var usedinfos string
+			usedinfos = "["
+			for n, u := range l.Usedinfos {
+				usedinfos += u.Tradeyearmonth + "," + u.Usedamount + "," + u.Ccy
+				if n != len(l.Usedinfos)-1 {
+					usedinfos += "|"
+				} else {
+					usedinfos += "]"
+				}
 			}
-		}
-		var settleinfos string
-		settleinfos = "["
-		for n, s := range l.Settleinfos {
-			settleinfos += s.Tradeyearmonth + "," + s.Settleamount + "," + s.Ccy
-			if n != len(l.Settleinfos)-1 {
-				settleinfos += "|"
-			} else {
-				settleinfos += "]"
+			var settleinfos string
+			settleinfos = "["
+			for n, s := range l.Settleinfos {
+				settleinfos += s.Tradeyearmonth + "," + s.Settleamount + "," + s.Ccy
+				if n != len(l.Settleinfos)-1 {
+					settleinfos += "|"
+				} else {
+					settleinfos += "]"
+				}
 			}
-		}
-		var orderinfos string
-		orderinfos = "["
-		for n, o := range l.Orderinfos {
-			orderinfos += o.Tradeyearmonth + "," + o.Orderamount + "," + o.Ccy
-			if n != len(l.Orderinfos)-1 {
-				orderinfos += "|"
-			} else {
-				orderinfos += "]"
+			var orderinfos string
+			orderinfos = "["
+			for n, o := range l.Orderinfos {
+				orderinfos += o.Tradeyearmonth + "," + o.Orderamount + "," + o.Ccy
+				if n != len(l.Orderinfos)-1 {
+					orderinfos += "|"
+				} else {
+					orderinfos += "]"
+				}
 			}
-		}
-		var receivableinfos string
-		receivableinfos = "["
-		for n, r := range l.Receivableinfos {
-			receivableinfos += r.Tradeyearmonth + "," + r.Receivableamount + "," + r.Ccy
-			if n != len(l.Receivableinfos)-1 {
-				receivableinfos += "|"
-			} else {
-				receivableinfos += "]"
+			var receivableinfos string
+			receivableinfos = "["
+			for n, r := range l.Receivableinfos {
+				receivableinfos += r.Tradeyearmonth + "," + r.Receivableamount + "," + r.Ccy
+				if n != len(l.Receivableinfos)-1 {
+					receivableinfos += "|"
+				} else {
+					receivableinfos += "]"
+				}
 			}
+			tempStr := baseStr + "," + usedinfos + "," + settleinfos + "," + orderinfos + "," + receivableinfos
+			mapping[index][header] = tempStr
 		}
-		tempStr := baseStr + "," + usedinfos + "," + settleinfos + "," + orderinfos + "," + receivableinfos
-		mapping[index][header] = tempStr
 	}
+
 	return mapping
 }
 func EncodeEnterpoolData(list []*receive.EnterpoolData) map[int]map[string]string {
