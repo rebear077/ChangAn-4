@@ -46,6 +46,7 @@ type packedInvoiceMessage struct {
 }
 
 type packedHistoricalMessage struct {
+	uuid          string
 	header        string
 	params        string
 	cipher        []byte

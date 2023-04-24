@@ -17,10 +17,10 @@ var logs = logloader.NewLog()
 
 type FrontEnd struct {
 	InvoicePool                             map[string][]*InvoiceInformation
-	TransactionHistoryPool                  map[string]*TransactionHistory
-	EnterpoolDataPool                       []*EnterpoolData
-	FinancingIntentionWithSelectedInfosPool []*SelectedInfosAndFinancingApplication
-	CollectionAccountPool                   []*CollectionAccount
+	TransactionHistoryPool                  map[string][]*TransactionHistory
+	EnterpoolDataPool                       map[string][]*EnterpoolData
+	FinancingIntentionWithSelectedInfosPool map[string][]*SelectedInfosAndFinancingApplication
+	CollectionAccountPool                   map[string][]*CollectionAccount
 
 	IssueInvoicemutex                        sync.RWMutex
 	TransactionHistorymutex                  sync.RWMutex
@@ -30,6 +30,9 @@ type FrontEnd struct {
 
 	IssueInvoiceOKChan     chan bool
 	IssueHistoryInfoOKChan chan bool
+	IssueEnterPoolOKChan   chan bool
+	IssueFinancingOKChan   chan bool
+	UpdateAccountOKChan    chan bool
 }
 type PackedResponse struct {
 	Success map[string]*uptoChain.ResponseMessage
@@ -45,10 +48,15 @@ func NewPackedResponse() *PackedResponse {
 func NewFrontEnd() *FrontEnd {
 	return &FrontEnd{
 		InvoicePool:                             make(map[string][]*InvoiceInformation, 0),
-		TransactionHistoryPool:                  make(map[string]*TransactionHistory, 0),
-		EnterpoolDataPool:                       make([]*EnterpoolData, 0),
-		FinancingIntentionWithSelectedInfosPool: make([]*SelectedInfosAndFinancingApplication, 0),
-		CollectionAccountPool:                   make([]*CollectionAccount, 0),
+		TransactionHistoryPool:                  make(map[string][]*TransactionHistory, 0),
+		EnterpoolDataPool:                       make(map[string][]*EnterpoolData, 0),
+		FinancingIntentionWithSelectedInfosPool: make(map[string][]*SelectedInfosAndFinancingApplication, 0),
+		CollectionAccountPool:                   make(map[string][]*CollectionAccount, 0),
+		IssueInvoiceOKChan:                      make(chan bool),
+		IssueHistoryInfoOKChan:                  make(chan bool),
+		IssueEnterPoolOKChan:                    make(chan bool),
+		IssueFinancingOKChan:                    make(chan bool),
+		UpdateAccountOKChan:                     make(chan bool),
 	}
 }
 func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request *http.Request) {
@@ -71,8 +79,8 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 		}
 		if res {
 			if checkTimeStamp(formatTimeStr) {
-				var message []*InvoiceInformation
-				if json.NewDecoder(request.Body).Decode(&message) != nil {
+				var messages []*InvoiceInformation
+				if json.NewDecoder(request.Body).Decode(&messages) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
 				} else {
@@ -80,9 +88,11 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					if err != nil {
 						logrus.Fatalf("newChannelMessage error: %v", err)
 					}
-					message.UUID = id.String()
+					for _, message := range messages {
+						message.UUID = id.String()
+					}
 					f.IssueInvoicemutex.Lock()
-					f.InvoicePool[id.String()] = &message
+					f.InvoicePool[id.String()] = messages
 					f.IssueInvoicemutex.Unlock()
 					<-f.IssueInvoiceOKChan
 					jsonData := NewPackedResponse()
@@ -138,10 +148,9 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 			logs.Info(err)
 		}
 		if res {
-			// fmt.Println("签名信息验证成功！！")
 			if checkTimeStamp(formatTimeStr) {
-				var message TransactionHistory
-				if json.NewDecoder(request.Body).Decode(&message) != nil {
+				var messages []*TransactionHistory
+				if json.NewDecoder(request.Body).Decode(&messages) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
 				} else {
@@ -149,9 +158,11 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 					if err != nil {
 						logrus.Fatalf("newChannelMessage error: %v", err)
 					}
-					message.UUID = id.String()
+					for _, message := range messages {
+						message.UUID = id.String()
+					}
 					f.TransactionHistorymutex.Lock()
-					f.TransactionHistoryPool[id.String()] = &message
+					f.TransactionHistoryPool[id.String()] = messages
 					f.TransactionHistorymutex.Unlock()
 					<-f.IssueHistoryInfoOKChan
 					jsonData := NewPackedResponse()

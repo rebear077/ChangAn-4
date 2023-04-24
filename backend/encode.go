@@ -112,28 +112,30 @@ func encodeInvoiceInfo(list []*receive.InvoiceInfo) map[int]map[string]string {
 	return mapping
 }
 
-func EncodeInvoiceInformation(list map[string]*receive.InvoiceInformation) map[string]map[int]map[string]string {
+func EncodeInvoiceInformation(list map[string][]*receive.InvoiceInformation) map[string]map[int]map[string]string {
 	resMap := make(map[string]map[int]map[string]string)
 	mapping := make(map[int]map[string]string)
 	guide := 0
 	for UUID, invoices := range list {
-		header := invoices.Customerid
-		for _, info := range invoices.Invoiceinfos {
-			id := header + ":" + info.Invoicedate
-			guide += 1
-			mapping[guide] = make(map[string]string)
-			tempStr := invoices.Certificateid + "," + invoices.Customerid + "," + invoices.Corpname + "," + invoices.Certificatetype + "," + l.Intercustomerid + "," + info.Invoicenotaxamt + "," + info.Invoiceccy + "," + info.Sellername + "," + info.Invoicetype + "," + info.Buyername + "," + info.Buyerusccode + "," + info.Invoicedate + "," + info.Sellerusccode + "," + info.Invoicecode + "," + info.Invoicenum + "," + info.Checkcode + "," + info.Invoiceamt
-			mapping[guide][id] = tempStr
+		for _, invoice := range invoices {
+			header := invoice.Customerid
+			for _, info := range invoice.Invoiceinfos {
+				id := header + ":" + info.Invoicedate
+				guide += 1
+				mapping[guide] = make(map[string]string)
+				tempStr := invoice.Certificateid + "," + invoice.Customerid + "," + invoice.Corpname + "," + invoice.Certificatetype + "," + invoice.Intercustomerid + "," + info.Invoicenotaxamt + "," + info.Invoiceccy + "," + info.Sellername + "," + info.Invoicetype + "," + info.Buyername + "," + info.Buyerusccode + "," + info.Invoicedate + "," + info.Sellerusccode + "," + info.Invoicecode + "," + info.Invoicenum + "," + info.Checkcode + "," + info.Invoiceamt
+				mapping[guide][id] = tempStr
+			}
 		}
 		resMap[UUID] = mapping
 	}
 	return resMap
 }
-func EncodeTransactionHistory(list map[string]*receive.TransactionHistory) map[string]map[int]map[string]string {
+func EncodeTransactionHistory(list map[string][]*receive.TransactionHistory) map[string]map[int]map[string]string {
 	resMap := make(map[string]map[int]map[string]string)
 	mapping := make(map[int]map[string]string)
 	for UUID, historyInfos := range list {
-		for index, l := range list {
+		for index, l := range historyInfos {
 			mapping[index] = make(map[string]string)
 			header := l.Customerid
 			baseStr := l.Customergrade + "," + l.Certificatetype + "," + l.Intercustomerid + "," + l.Corpname + "," + l.Financeid + "," + l.Certificateid + "," + l.Customerid
@@ -180,9 +182,10 @@ func EncodeTransactionHistory(list map[string]*receive.TransactionHistory) map[s
 			tempStr := baseStr + "," + usedinfos + "," + settleinfos + "," + orderinfos + "," + receivableinfos
 			mapping[index][header] = tempStr
 		}
+		resMap[UUID] = mapping
 	}
 
-	return mapping
+	return resMap
 }
 func EncodeEnterpoolData(list []*receive.EnterpoolData) map[int]map[string]string {
 	mapping := make(map[int]map[string]string)

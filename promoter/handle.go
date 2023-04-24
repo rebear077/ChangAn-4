@@ -76,7 +76,7 @@ func (p *Promoter) InvoiceInfoHandler() {
 	if len(p.DataApi.InvoicePool) != 0 {
 		logs.Infoln("开始同步发票信息")
 		var wg sync.WaitGroup
-		invoices := make(map[string]*receive.InvoiceInformation, 0)
+		invoices := make(map[string][]*receive.InvoiceInformation, 0)
 		p.DataApi.IssueInvoicemutex.Lock()
 		invoices = p.DataApi.InvoicePool
 		for uuid := range p.DataApi.InvoicePool {
@@ -91,7 +91,7 @@ func (p *Promoter) InvoiceInfoHandler() {
 					tempheader := id
 					tempinfo := info
 					UUID := uuid
-					go func(UUID string, tempheader string, tempinfo string) {
+					go func(UUID, tempheader, tempinfo string) {
 						p.packInvoiceInfo(UUID, tempheader, tempinfo, "fast", "invoice")
 						wg.Done()
 					}(UUID, tempheader, tempinfo)
@@ -139,7 +139,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 	if len(p.DataApi.TransactionHistoryPool) != 0 {
 		logs.Infoln("开始历史交易信息")
 		var wg sync.WaitGroup
-		hisinfos := make(map[string]*receive.TransactionHistory, 0)
+		hisinfos := make(map[string][]*receive.TransactionHistory, 0)
 		p.DataApi.TransactionHistorymutex.Lock()
 		hisinfos = p.DataApi.TransactionHistoryPool
 		for uuid := range p.DataApi.TransactionHistoryPool {
@@ -147,19 +147,21 @@ func (p *Promoter) HistoricalInfoHandler() {
 		}
 		p.DataApi.TransactionHistorymutex.Unlock()
 		mapping := server.EncodeTransactionHistory(hisinfos)
-		for index := range mapping {
-			for header, info := range mapping[index] {
-				tempheader := header
-				tempinfo := info
-				wg.Add(1)
-				go func(tempheader string, tempinfo string) {
-					usedvalue, settlevalue, ordervalue, receivablevalue := server.HistoricalInformationSlice(tempheader, tempinfo, 1)
-					p.packHistoricalInfos(tempheader, usedvalue, "fast", "historicalUsed")
-					p.packHistoricalInfos(tempheader, settlevalue, "fast", "historicalSettle")
-					p.packHistoricalInfos(tempheader, ordervalue, "fast", "historicalOrder")
-					p.packHistoricalInfos(tempheader, receivablevalue, "fast", "historicalReceivable")
-					wg.Done()
-				}(tempheader, tempinfo)
+		for UUID, historyInfos := range mapping {
+			for index := range historyInfos {
+				for header, info := range historyInfos[index] {
+					tempheader := header
+					tempinfo := info
+					wg.Add(1)
+					go func(UUID, tempheader, tempinfo string) {
+						usedvalue, settlevalue, ordervalue, receivablevalue := server.HistoricalInformationSlice(tempheader, tempinfo, 1)
+						p.packHistoricalInfos(UUID, tempheader, usedvalue, "fast", "historicalUsed")
+						p.packHistoricalInfos(UUID, tempheader, settlevalue, "fast", "historicalSettle")
+						p.packHistoricalInfos(UUID, tempheader, ordervalue, "fast", "historicalOrder")
+						p.packHistoricalInfos(UUID, tempheader, receivablevalue, "fast", "historicalReceivable")
+						wg.Done()
+					}(UUID, tempheader, tempinfo)
+				}
 			}
 		}
 		wg.Wait()
@@ -593,12 +595,12 @@ func (p *Promoter) packFinancingInfo(header string, info string, poolType string
 }
 
 // 针对历史交易信息的packInfo
-func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType string, method string) {
+func (p *Promoter) packHistoricalInfos(UUID, header string, infos []string, poolType, method string) {
 	var wg sync.WaitGroup
 	for _, info := range infos {
 		tempinfo := info
 		wg.Add(1)
-		go func(header string, tempinfo string) {
+		go func(tempinfo string) {
 			fields := strings.Split(tempinfo, ",")
 			tradeYearMonth := fields[7] //交易年月
 			tradeYearMonth = strings.Replace(tradeYearMonth, "[", "", -1)
@@ -606,7 +608,6 @@ func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType s
 			fmt.Println(tradeYearMonth)
 			cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(tempinfo))
 			if err != nil {
-				// logrus.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
 				logs.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
 			}
 			temp := packedHistoricalMessage{}
@@ -614,10 +615,10 @@ func (p *Promoter) packHistoricalInfos(header string, infos []string, poolType s
 			temp.cipher = cipher
 			temp.encryptionKey = encryptionKey
 			temp.header = header
+			temp.uuid = UUID
 			p.encryptedPool.InsertHistoricalTrans(temp, method, poolType)
 			wg.Done()
-		}(header, tempinfo)
-
+		}(tempinfo)
 	}
 	wg.Wait()
 }
