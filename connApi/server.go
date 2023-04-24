@@ -19,7 +19,7 @@ type FrontEnd struct {
 	InvoicePool                             map[string][]*InvoiceInformation
 	TransactionHistoryPool                  map[string][]*TransactionHistory
 	EnterpoolDataPool                       map[string][]*EnterpoolData
-	FinancingIntentionWithSelectedInfosPool map[string][]*SelectedInfosAndFinancingApplication
+	FinancingIntentionWithSelectedInfosPool map[string]*SelectedInfosAndFinancingApplication
 	CollectionAccountPool                   map[string][]*CollectionAccount
 
 	IssueInvoicemutex                        sync.RWMutex
@@ -28,11 +28,16 @@ type FrontEnd struct {
 	FinancingIntentionWithSelectedInfosMutex sync.RWMutex
 	CollectionAccountmutex                   sync.RWMutex
 
-	IssueInvoiceOKChan     chan bool
-	IssueHistoryInfoOKChan chan bool
-	IssueEnterPoolOKChan   chan bool
-	IssueFinancingOKChan   chan bool
-	UpdateAccountOKChan    chan bool
+	IssueInvoiceOKChan                  chan interface{}
+	IssueHistoryUsedInfoOKChan          chan interface{}
+	IssueHistoricalOrderInfoOKChan      chan interface{}
+	IssueHistoricalSettleInfoOKChan     chan interface{}
+	IssueHistoricalReceivableInfoOKChan chan interface{}
+	IssueEnterPoolPlanOKChan            chan interface{}
+	IssueEnterPoolUsedOKChan            chan interface{}
+	ModifyAccountOKChan                 chan interface{}
+	FinancingIntentionOKChan            chan interface{}
+	ModifyInvoiceOKChan                 chan interface{}
 }
 type PackedResponse struct {
 	Success map[string]*uptoChain.ResponseMessage
@@ -50,13 +55,18 @@ func NewFrontEnd() *FrontEnd {
 		InvoicePool:                             make(map[string][]*InvoiceInformation, 0),
 		TransactionHistoryPool:                  make(map[string][]*TransactionHistory, 0),
 		EnterpoolDataPool:                       make(map[string][]*EnterpoolData, 0),
-		FinancingIntentionWithSelectedInfosPool: make(map[string][]*SelectedInfosAndFinancingApplication, 0),
+		FinancingIntentionWithSelectedInfosPool: make(map[string]*SelectedInfosAndFinancingApplication, 0),
 		CollectionAccountPool:                   make(map[string][]*CollectionAccount, 0),
-		IssueInvoiceOKChan:                      make(chan bool),
-		IssueHistoryInfoOKChan:                  make(chan bool),
-		IssueEnterPoolOKChan:                    make(chan bool),
-		IssueFinancingOKChan:                    make(chan bool),
-		UpdateAccountOKChan:                     make(chan bool),
+		IssueInvoiceOKChan:                      make(chan interface{}),
+		IssueHistoryUsedInfoOKChan:              make(chan interface{}),
+		IssueHistoricalOrderInfoOKChan:          make(chan interface{}),
+		IssueHistoricalSettleInfoOKChan:         make(chan interface{}),
+		IssueHistoricalReceivableInfoOKChan:     make(chan interface{}),
+		IssueEnterPoolPlanOKChan:                make(chan interface{}),
+		IssueEnterPoolUsedOKChan:                make(chan interface{}),
+		ModifyAccountOKChan:                     make(chan interface{}),
+		FinancingIntentionOKChan:                make(chan interface{}),
+		ModifyInvoiceOKChan:                     make(chan interface{}),
 	}
 }
 func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request *http.Request) {
@@ -96,7 +106,7 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					f.IssueInvoicemutex.Unlock()
 					<-f.IssueInvoiceOKChan
 					jsonData := NewPackedResponse()
-					uptoChain.M.Range(func(key, value interface{}) bool {
+					uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
@@ -108,7 +118,7 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 									}
 								}
 							}
-							uptoChain.M.Delete(uuid)
+							uptoChain.InvoiceMap.Delete(uuid)
 						}
 						return true
 					})
@@ -164,13 +174,65 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 					f.TransactionHistorymutex.Lock()
 					f.TransactionHistoryPool[id.String()] = messages
 					f.TransactionHistorymutex.Unlock()
-					<-f.IssueHistoryInfoOKChan
+					<-f.IssueHistoryUsedInfoOKChan
+					<-f.IssueHistoricalOrderInfoOKChan
+					<-f.IssueHistoricalReceivableInfoOKChan
+					<-f.IssueHistoricalSettleInfoOKChan
 					jsonData := NewPackedResponse()
-					uptoChain.M.Range(func(key, value interface{}) bool {
+					uptoChain.HistoricalOrderMap.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
+									message.AddMessage("HistoricalOrder:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
+								}
+							}
+						}
+						return true
+					})
+					uptoChain.HistoricalSettleMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("HistoricalSettle:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
+								}
+							}
+						}
+						return true
+					})
+					uptoChain.HistoricalUsedMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("HistoricalUsed:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
+								}
+							}
+						}
+						return true
+					})
+					uptoChain.HistoricalReceivableMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("HistoricalReceivable:")
 									if message.GetWhetherOK() {
 										jsonData.Success[txHash] = message
 									} else {
@@ -218,16 +280,56 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 		}
 		if res {
 			if checkTimeStamp(formatTimeStr) {
-				var message EnterpoolData
-				if json.NewDecoder(request.Body).Decode(&message) != nil {
+				var messages []*EnterpoolData
+				if json.NewDecoder(request.Body).Decode(&messages) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
 				} else {
-					jsonData := sucessCode()
+					id, err := uuid.NewUUID()
+					if err != nil {
+						logrus.Fatalf("newChannelMessage error: %v", err)
+					}
+					for _, message := range messages {
+						message.UUID = id.String()
+					}
 					f.EnterpoolDatamutex.Lock()
-					// fmt.Println(message)
-					f.EnterpoolDataPool = append(f.EnterpoolDataPool, &message)
+					f.EnterpoolDataPool[id.String()] = messages
 					f.EnterpoolDatamutex.Unlock()
+					<-f.IssueEnterPoolPlanOKChan
+					<-f.IssueEnterPoolUsedOKChan
+					jsonData := NewPackedResponse()
+					uptoChain.PoolPlanMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("PoolPlan:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
+								}
+							}
+						}
+						return true
+					})
+					uptoChain.PoolUsedMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("PoolUsed:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
+								}
+							}
+						}
+						return true
+					})
 					fmt.Fprint(writer, jsonData)
 				}
 			} else {
@@ -269,12 +371,40 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 				if json.NewDecoder(request.Body).Decode(&message) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
-				} else {
-					jsonData := sucessCode()
-					f.FinancingIntentionWithSelectedInfosMutex.Lock()
-					f.FinancingIntentionWithSelectedInfosPool = append(f.FinancingIntentionWithSelectedInfosPool, &message)
-					f.FinancingIntentionWithSelectedInfosMutex.Unlock()
+				} else if !VerifyInvoice(message) {
+					jsonData := wrongVerifyInvoice()
 					fmt.Fprint(writer, jsonData)
+				} else {
+					id, err := uuid.NewUUID()
+					if err != nil {
+						logrus.Fatalf("newChannelMessage error: %v", err)
+					}
+					message.UUID = id.String()
+					for _, invoice := range message.Invoice {
+						invoice.FinancingID = message.FinancingApplication.Financeid
+					}
+					f.FinancingIntentionWithSelectedInfosMutex.Lock()
+					f.FinancingIntentionWithSelectedInfosPool[id.String()] = &message
+					f.FinancingIntentionWithSelectedInfosMutex.Unlock()
+					// <-f.IssueInvoiceOKChan
+					// jsonData := NewPackedResponse()
+					// uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
+					// 	if uuid, ok := key.(string); ok {
+					// 		if uuid == id.String() {
+					// 			mapping := value.(map[string]*uptoChain.ResponseMessage)
+					// 			for txHash, message := range mapping {
+					// 				if message.GetWhetherOK() {
+					// 					jsonData.Success[txHash] = message
+					// 				} else {
+					// 					jsonData.Fail[txHash] = message
+					// 				}
+					// 			}
+					// 		}
+					// 		uptoChain.InvoiceMap.Delete(uuid)
+					// 	}
+					// 	return true
+					// })
+					// fmt.Fprint(writer, jsonData)
 				}
 			} else {
 				jsonData := timeExceeded()
@@ -313,17 +443,40 @@ func (f *FrontEnd) HandleCollectionAccount(writer http.ResponseWriter, request *
 		if res {
 			// fmt.Println("签名信息验证成功！！")
 			if checkTimeStamp(formatTimeStr) {
-				var message CollectionAccount
-				if json.NewDecoder(request.Body).Decode(&message) != nil {
+				var messages []*CollectionAccount
+				if json.NewDecoder(request.Body).Decode(&messages) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
 				} else {
 					//返回成功字段
-					jsonData := sucessCode()
+					id, err := uuid.NewUUID()
+					if err != nil {
+						logrus.Fatalf("newChannelMessage error: %v", err)
+					}
+					for _, message := range messages {
+						message.UUID = id.String()
+					}
 					f.CollectionAccountmutex.Lock()
-					f.CollectionAccountPool = append(f.CollectionAccountPool, &message)
-					// fmt.Println(message)
+					f.CollectionAccountPool[id.String()] = messages
 					f.CollectionAccountmutex.Unlock()
+					<-f.ModifyAccountOKChan
+					jsonData := NewPackedResponse()
+					uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = message
+									} else {
+										jsonData.Fail[txHash] = message
+									}
+								}
+							}
+							uptoChain.CollectionAccountMap.Delete(uuid)
+						}
+						return true
+					})
 					fmt.Fprint(writer, jsonData)
 				}
 			} else {

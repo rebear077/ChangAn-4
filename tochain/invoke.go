@@ -74,15 +74,39 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(SupplierFinancingApplicationInfo, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		FinancingApplicationMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			FinancingApplicationMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	} else {
-		supplierCounterMutex.Lock()
-		supplierCounter += 1
-		supplierCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		FinancingApplicationMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			FinancingApplicationMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 
@@ -114,34 +138,28 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
 		packedMessage.message = message
-		M.Range(func(key, value interface{}) bool {
+		InvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
-			_, ok := M.LoadOrStore(uuid, mapping)
-			if !ok {
-				logs.Fatalln("sync.map error")
-			}
-			return ok
+			InvoiceMap.LoadOrStore(uuid, mapping)
+			return true
 		})
 	} else {
 		message := "success"
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = true
 		packedMessage.message = message
-		M.Range(func(key, value interface{}) bool {
+		InvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
-			_, ok := M.LoadOrStore(uuid, mapping)
-			if !ok {
-				logs.Fatalln("sync.map error")
-			}
-			return ok
+			InvoiceMap.LoadOrStore(uuid, mapping)
+			return true
 		})
 	}
 }
@@ -152,7 +170,6 @@ func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receip
 		fmt.Printf("%v\n", err)
 		return
 	}
-
 	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
 	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updateInvoiceInformationStorage", receipt)
 	if err != nil {
@@ -191,15 +208,39 @@ func invokeIssueHistoricalUsedInformationHandler(receipt *types.Receipt, err err
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(HistoricalUsedInformation, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		HistoricalUsedMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalUsedMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	} else {
-		historicalUsedCounterMutex.Lock()
-		historicalUsedCounter += 1
-		historicalUsedCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		HistoricalUsedMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalUsedMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 
@@ -219,15 +260,41 @@ func invokeIssueHistoricalSettleInformationHandler(receipt *types.Receipt, err e
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(HistoricalSettleInformation, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		HistoricalSettleMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalSettleMap.LoadOrStore(uuid, mapping)
+
+			return true
+		})
 	} else {
-		historicalSettleCounterMutex.Lock()
-		historicalSettleCounter += 1
-		historicalSettleCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		HistoricalSettleMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalSettleMap.LoadOrStore(uuid, mapping)
+
+			return true
+		})
 	}
 }
 
@@ -247,15 +314,40 @@ func invokeIssueHistoricalOrderInformationHandler(receipt *types.Receipt, err er
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(HistoricalOrderInformation, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		HistoricalOrderMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalOrderMap.LoadOrStore(uuid, mapping)
+
+			return true
+		})
 	} else {
-		historicalOrderCounterMutex.Lock()
-		historicalOrderCounter += 1
-		historicalOrderCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		HistoricalOrderMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalOrderMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 
@@ -275,15 +367,40 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(HistoricalReceivableInformation, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		HistoricalReceivableMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalReceivableMap.LoadOrStore(uuid, mapping)
+
+			return true
+		})
 	} else {
-		historicalReceivableCounterMutex.Lock()
-		historicalReceivableCounter += 1
-		historicalReceivableCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		HistoricalReceivableMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			HistoricalReceivableMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 
@@ -303,15 +420,39 @@ func invokeUpdatePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(UpdatePushPaymentAccounts, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		CollectionAccountMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			CollectionAccountMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	} else {
-		paymentAccountsCounterMutex.Lock()
-		paymentAccountsCounter += 1
-		paymentAccountsCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		CollectionAccountMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			CollectionAccountMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 
@@ -331,15 +472,39 @@ func invokeIssuePoolPlanInformationHandler(receipt *types.Receipt, err error) {
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(PoolPlanInfo, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		PoolPlanMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			PoolPlanMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	} else {
-		poolPlanCounterMutex.Lock()
-		poolPlanCounter += 1
-		poolPlanCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		PoolPlanMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			PoolPlanMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 
@@ -359,15 +524,39 @@ func invokeIssuePoolUsedInformationHandler(receipt *types.Receipt, err error) {
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(PoolUsedInfo, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		PoolUsedMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			PoolUsedMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	} else {
-		poolUsedCounterMutex.Lock()
-		poolUsedCounter += 1
-		poolUsedCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		PoolUsedMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			PoolUsedMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 

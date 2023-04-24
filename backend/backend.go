@@ -137,8 +137,8 @@ func (s *Server) VerifyAndUpdateInvoiceInformation(id, owner string, hash []byte
 }
 
 // 历史交易信息之入库信息
-func (s *Server) IssueHistoricalUsedInformation(id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalUsedInformation(id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalUsedInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalUsedInformation(uuid, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -147,8 +147,8 @@ func (s *Server) IssueHistoricalUsedInformation(id, params string, cipher, encry
 }
 
 // 历史交易信息之结算信息
-func (s *Server) IssueHistoricalSettleInformation(id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalSettleInformation(id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalSettleInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalSettleInformation(uuid, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -157,8 +157,8 @@ func (s *Server) IssueHistoricalSettleInformation(id, params string, cipher, enc
 }
 
 // 历史交易信息之订单信息
-func (s *Server) IssueHistoricalOrderInformation(id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalOrderInformation(id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalOrderInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalOrderInformation(uuid, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -167,8 +167,8 @@ func (s *Server) IssueHistoricalOrderInformation(id, params string, cipher, encr
 }
 
 // 历史交易信息之应收账款信息
-func (s *Server) IssueHistoricalReceivableInformation(id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalReceivableInformation(id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalReceivableInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalReceivableInformation(uuid, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -177,8 +177,8 @@ func (s *Server) IssueHistoricalReceivableInformation(id, params string, cipher,
 }
 
 // 入池数据之供应商生产计划信息
-func (s *Server) IssuePoolPlanInformation(id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssuePoolPlanInformation(id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssuePoolPlanInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssuePoolPlanInformation(uuid, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -187,8 +187,8 @@ func (s *Server) IssuePoolPlanInformation(id, params string, cipher, encryptionK
 }
 
 // 入池数据之供应商生产入库信息
-func (s *Server) IssuePoolUsedInformation(id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssuePoolUsedInformation(id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssuePoolUsedInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssuePoolUsedInformation(uuid, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -197,8 +197,8 @@ func (s *Server) IssuePoolUsedInformation(id, params string, cipher, encryptionK
 }
 
 // 上传融资意向请求
-func (s *Server) IssueSupplierFinancingApplication(id string, financingid string, cipher []byte, encryptionKey []byte, signed []byte) error {
-	err := s.ctr.IssueSupplierFinancingApplication(id, financingid, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueSupplierFinancingApplication(uuid, id, financingid string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.IssueSupplierFinancingApplication(uuid, id, financingid, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -207,8 +207,8 @@ func (s *Server) IssueSupplierFinancingApplication(id string, financingid string
 }
 
 // 回款信息
-func (s *Server) UpdatePushPaymentAccount(id string, cipher, encryptionKey, signed []byte) error {
-	err := s.ctr.UpdatePushPaymentAccounts(id, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) UpdatePushPaymentAccount(uuid, id string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.UpdatePushPaymentAccounts(uuid, id, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {

@@ -20,18 +20,37 @@ import (
 )
 
 var Logs = logloader.NewLog()
-var M sync.Map
+var (
+	InvoiceMap              sync.Map
+	HistoricalOrderMap      sync.Map
+	HistoricalReceivableMap sync.Map
+	HistoricalUsedMap       sync.Map
+	HistoricalSettleMap     sync.Map
+	PoolPlanMap             sync.Map
+	PoolUsedMap             sync.Map
+	CollectionAccountMap    sync.Map
+	FinancingApplicationMap sync.Map
+)
 
 type ResponseMessage struct {
 	message string
 	ok      bool
 }
 
+func NewResponseMessage() *ResponseMessage {
+	return &ResponseMessage{
+		message: "",
+		ok:      true,
+	}
+}
 func (rsp *ResponseMessage) GetWhetherOK() bool {
 	return rsp.ok
 }
 func (rsp *ResponseMessage) GetMessage() string {
 	return rsp.message
+}
+func (rsp *ResponseMessage) AddMessage(input string) string {
+	return input + rsp.message
 }
 
 type Controller struct {
@@ -149,11 +168,15 @@ func (c *Controller) IssuePublicKeyStorage(id string, role string, key string) (
 
 // 上传融资意向请求
 // 入口参数：id：供应商编号；financingid:融资意向申请id；data：加密后的数据；key：加密后的key值；hash：哈希值
-func (c *Controller) IssueSupplierFinancingApplication(id string, financingid string, data string, key string, hash string) error {
-	_, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, financingid, data, key, hash)
+func (c *Controller) IssueSupplierFinancingApplication(uuid, id, financingid, data, key, hash string) error {
+	transaction, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, financingid, data, key, hash)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	FinancingApplicationMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
@@ -162,23 +185,20 @@ func (c *Controller) IssueSupplierFinancingApplication(id string, financingid st
 // data：加密后的数据；key：加密后的key值
 func (c *Controller) IssueInvoiceInformation(uuid, id, params, data, key string) error {
 	transaction, err := c.session.AsyncIssueInvoiceInformationStorage(invokeIssueInvoiceInformationStorageHandler, id, params, data, key)
-	mapping := make(map[string]*ResponseMessage)
-	mapping[transaction.Hash().String()] = nil
-	stored, ok := M.LoadOrStore(uuid, mapping)
-	if !ok {
-		if res, ok := stored.(map[string]*ResponseMessage); ok {
-			res[transaction.Hash().String()] = nil
-		}
-	}
+
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	InvoiceMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
 // 验证并更新发票信息的owner字段
 // 入口参数：id：供应商编号:发票的年月日;hash：发票哈希值；owner：融资意向申请编号
-func (c *Controller) VerifyAndUpdateInvoiceInformation(id string, hash string, owner string) error {
+func (c *Controller) VerifyAndUpdateInvoiceInformation(id, hash, owner string) error {
 	_, err := c.session.AsyncUpdateInvoiceInformationStorage(invokeVerifyAndUpdateInvoiceInformationStorageHandler, id, hash, owner)
 	if err != nil {
 		return err
@@ -188,67 +208,95 @@ func (c *Controller) VerifyAndUpdateInvoiceInformation(id string, hash string, o
 
 // 历史交易信息之入库信息
 // 入口参数：id：供应商id；params:复合参数包括tradeyearmonth:交易年月；financingid:融资意向申请编号；hash:哈希值；owner：空的
-func (c *Controller) IssueHistoricalUsedInformation(id string, params string, data string, key string) error {
-	_, err := c.session.AsyncIssueHistoricalUsedInformation(invokeIssueHistoricalUsedInformationHandler, id, params, data, key)
+func (c *Controller) IssueHistoricalUsedInformation(uuid, id, params, data, key string) error {
+	transaction, err := c.session.AsyncIssueHistoricalUsedInformation(invokeIssueHistoricalUsedInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	HistoricalUsedMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
 // 历史交易信息之结算信息
-func (c *Controller) IssueHistoricalSettleInformation(id string, params string, data string, key string) error {
-	_, err := c.session.AsyncIssueHistoricalSettleInformation(invokeIssueHistoricalSettleInformationHandler, id, params, data, key)
+func (c *Controller) IssueHistoricalSettleInformation(uuid, id, params, data, key string) error {
+	transaction, err := c.session.AsyncIssueHistoricalSettleInformation(invokeIssueHistoricalSettleInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	HistoricalSettleMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
 // 历史交易信息之订单信息
-func (c *Controller) IssueHistoricalOrderInformation(id string, params string, data string, key string) error {
-	_, err := c.session.AsyncIssueHistoricalOrderInformation(invokeIssueHistoricalOrderInformationHandler, id, params, data, key)
+func (c *Controller) IssueHistoricalOrderInformation(uuid, id, params, data, key string) error {
+	transaction, err := c.session.AsyncIssueHistoricalOrderInformation(invokeIssueHistoricalOrderInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	HistoricalOrderMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
 // 历史交易信息之应收账款信息
-func (c *Controller) IssueHistoricalReceivableInformation(id string, params string, data string, key string) error {
-	_, err := c.session.AsyncIssueHistoricalReceivableInformation(invokeIssueHistoricalReceivableInformationHandler, id, params, data, key)
+func (c *Controller) IssueHistoricalReceivableInformation(uuid, id, params, data, key string) error {
+	transaction, err := c.session.AsyncIssueHistoricalReceivableInformation(invokeIssueHistoricalReceivableInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	HistoricalReceivableMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
 // 回款信息
 // 长安业务服务器只负责修改回款账户信息
-func (c *Controller) UpdatePushPaymentAccounts(id string, data string, key string, hash string) error {
+func (c *Controller) UpdatePushPaymentAccounts(uuid, id, data, key, hash string) error {
 
-	_, err := c.session.AsyncUpdatePushPaymentAccounts(invokeUpdatePushPaymentAccountsHandler, id, data, key, hash)
+	transaction, err := c.session.AsyncUpdatePushPaymentAccounts(invokeUpdatePushPaymentAccountsHandler, id, data, key, hash)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	CollectionAccountMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
 // 入池数据之供应商生产计划信息
 // 入口参数：id；params：交易年月_tradeYearMonth；哈希值_hash；所有权_owner
-func (c *Controller) IssuePoolPlanInformation(id string, params string, data string, key string) error {
-	_, err := c.session.AsyncIssuePoolPlanInformation(invokeIssuePoolPlanInformationHandler, id, params, data, key)
+func (c *Controller) IssuePoolPlanInformation(uuid, id, params, data, key string) error {
+	transaction, err := c.session.AsyncIssuePoolPlanInformation(invokeIssuePoolPlanInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	PoolPlanMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 
 // 入池数据之供应商生产入库信息
-func (c *Controller) IssuePoolUsedInformation(id string, params string, data string, key string) error {
-	_, err := c.session.AsyncIssuePoolUsedInformation(invokeIssuePoolUsedInformationHandler, id, params, data, key)
+func (c *Controller) IssuePoolUsedInformation(uuid, id, params, data, key string) error {
+	transaction, err := c.session.AsyncIssuePoolUsedInformation(invokeIssuePoolUsedInformationHandler, id, params, data, key)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	PoolUsedMap.LoadOrStore(uuid, mapping)
 	return nil
 }

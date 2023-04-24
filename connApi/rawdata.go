@@ -65,6 +65,7 @@ type Receivableinfos struct {
 
 // 推送入池数据接口
 type EnterpoolData struct {
+	UUID              string              `json:"-"`
 	Datetimepoint     string              `json:"dateTimePoint"`
 	Ccy               string              `json:"ccy"`
 	Customerid        string              `json:"customerId"`
@@ -120,6 +121,7 @@ type FinancingIntention struct {
 
 // 推送回款账户接口
 type CollectionAccount struct {
+	UUID            string `json:"-"`
 	Backaccount     string `json:"BackAccount"`
 	Certificateid   string `json:"CertificateId"`
 	Customerid      string `json:"CustomerId"`
@@ -130,6 +132,7 @@ type CollectionAccount struct {
 }
 
 type SelectedInfosAndFinancingApplication struct {
+	UUID                 string             `json:"-"`
 	FinancingApplication FinancingIntention `json:"FinancingApplication"`
 	Invoice              []InvoiceInfo      `json:"invoice"`
 }
@@ -158,6 +161,7 @@ type InvoiceInfo struct {
 	InvoiceNum      string `json:"InvoiceNum"`
 	CheckCode       string `json:"CheckCode"`
 	InvoiceAmt      string `json:"InvoiceAmt"`
+	FinancingID     string `json:"-"`
 }
 
 //	type TransactionHistoryData struct {

@@ -43,7 +43,14 @@ func wrongVerifyMethod() string {
 	}`)
 	return string(jsonData)
 }
-
+func wrongVerifyInvoice() string {
+	jsonData := []byte(`{
+		"msg":"发票验证无效",
+		"result": "{}",
+		"code":"ERR02"
+	}`)
+	return string(jsonData)
+}
 func wrongJsonType() string {
 	jsonData := []byte(`{
 		"msg":"错误的Json格式",
