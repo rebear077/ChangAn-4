@@ -60,10 +60,12 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		packedMessage.message = message
 		FinancingApplicationMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			FinancingApplicationMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			FinancingApplicationMapLock.Unlock()
 			FinancingApplicationMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -74,10 +76,12 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		packedMessage.message = message
 		FinancingApplicationMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			FinancingApplicationMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			FinancingApplicationMapLock.Unlock()
 			FinancingApplicationMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -90,7 +94,6 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 		fmt.Printf("%v\n", err)
 		return
 	}
-
 	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
 	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "issueInvoiceInformationStorage", receipt)
 	if err != nil {
@@ -114,24 +117,31 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 		packedMessage.message = message
 		InvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			InvoiceMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			InvoiceMapLock.Unlock()
 			InvoiceMap.LoadOrStore(uuid, mapping)
 			return true
 		})
 	} else {
 		message := "success"
-		packedMessage := new(ResponseMessage)
-		packedMessage.ok = true
-		packedMessage.message = message
+		// fmt.Println(receipt.BlockHash)
 		InvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			InvoiceMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
+			fmt.Println(mapping)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
+				packedMessage := mapping[receipt.TransactionHash]
+				packedMessage.ok = true
+				packedMessage.message = message
 				mapping[receipt.TransactionHash] = packedMessage
+				fmt.Println("xxxxxxxxxxxxxxxxxxxxx")
 			}
+			InvoiceMapLock.Unlock()
 			InvoiceMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -166,10 +176,12 @@ func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receip
 		packedMessage.message = message
 		ModifyInvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			ModifyInvoiceMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			ModifyInvoiceMapLock.Unlock()
 			ModifyInvoiceMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -180,10 +192,12 @@ func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receip
 		packedMessage.message = message
 		ModifyInvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			ModifyInvoiceMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			ModifyInvoiceMapLock.Unlock()
 			ModifyInvoiceMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -218,10 +232,12 @@ func invokeIssueHistoricalUsedInformationHandler(receipt *types.Receipt, err err
 		packedMessage.message = message
 		HistoricalUsedMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalUsedMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalUsedMapLock.Unlock()
 			HistoricalUsedMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -232,10 +248,12 @@ func invokeIssueHistoricalUsedInformationHandler(receipt *types.Receipt, err err
 		packedMessage.message = message
 		HistoricalUsedMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalUsedMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalUsedMapLock.Unlock()
 			HistoricalUsedMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -270,10 +288,12 @@ func invokeIssueHistoricalSettleInformationHandler(receipt *types.Receipt, err e
 		packedMessage.message = message
 		HistoricalSettleMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalSettleMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalSettleMapLock.Unlock()
 			HistoricalSettleMap.LoadOrStore(uuid, mapping)
 
 			return true
@@ -285,10 +305,12 @@ func invokeIssueHistoricalSettleInformationHandler(receipt *types.Receipt, err e
 		packedMessage.message = message
 		HistoricalSettleMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalSettleMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalSettleMapLock.Unlock()
 			HistoricalSettleMap.LoadOrStore(uuid, mapping)
 
 			return true
@@ -324,12 +346,13 @@ func invokeIssueHistoricalOrderInformationHandler(receipt *types.Receipt, err er
 		packedMessage.message = message
 		HistoricalOrderMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalOrderMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalOrderMapLock.Unlock()
 			HistoricalOrderMap.LoadOrStore(uuid, mapping)
-
 			return true
 		})
 	} else {
@@ -339,10 +362,12 @@ func invokeIssueHistoricalOrderInformationHandler(receipt *types.Receipt, err er
 		packedMessage.message = message
 		HistoricalOrderMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalOrderMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalOrderMapLock.Unlock()
 			HistoricalOrderMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -377,10 +402,12 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 		packedMessage.message = message
 		HistoricalReceivableMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalReceivableMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalReceivableMapLock.Unlock()
 			HistoricalReceivableMap.LoadOrStore(uuid, mapping)
 
 			return true
@@ -392,10 +419,12 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 		packedMessage.message = message
 		HistoricalReceivableMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			HistoricalReceivableMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			HistoricalReceivableMapLock.Unlock()
 			HistoricalReceivableMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -430,10 +459,12 @@ func invokeUpdatePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 		packedMessage.message = message
 		CollectionAccountMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			CollectionAccountMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			CollectionAccountMapLock.Unlock()
 			CollectionAccountMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -444,10 +475,12 @@ func invokeUpdatePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 		packedMessage.message = message
 		CollectionAccountMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			CollectionAccountMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			CollectionAccountMapLock.Unlock()
 			CollectionAccountMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -482,10 +515,12 @@ func invokeIssuePoolPlanInformationHandler(receipt *types.Receipt, err error) {
 		packedMessage.message = message
 		PoolPlanMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			PoolPlanMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			PoolPlanMapLock.Unlock()
 			PoolPlanMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -496,10 +531,12 @@ func invokeIssuePoolPlanInformationHandler(receipt *types.Receipt, err error) {
 		packedMessage.message = message
 		PoolPlanMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			PoolPlanMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			PoolPlanMapLock.Unlock()
 			PoolPlanMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -534,10 +571,12 @@ func invokeIssuePoolUsedInformationHandler(receipt *types.Receipt, err error) {
 		packedMessage.message = message
 		PoolUsedMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			PoolUsedMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			PoolUsedMapLock.Unlock()
 			PoolUsedMap.LoadOrStore(uuid, mapping)
 			return true
 		})
@@ -548,10 +587,12 @@ func invokeIssuePoolUsedInformationHandler(receipt *types.Receipt, err error) {
 		packedMessage.message = message
 		PoolUsedMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
+			PoolUsedMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
+			PoolUsedMapLock.Unlock()
 			PoolUsedMap.LoadOrStore(uuid, mapping)
 			return true
 		})

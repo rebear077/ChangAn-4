@@ -119,16 +119,16 @@ func (s *Server) DataEncryption(data []byte) ([]byte, []byte, []byte, error) {
 }
 
 // 发票信息
-func (s *Server) IssueInvoiceInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueInvoiceInformation(uuid, id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueInvoiceInformation(UUID, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueInvoiceInformation(UUID, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
 		return nil
 	}
 }
-func (s *Server) VerifyAndUpdateInvoiceInformation(uuid, id, hash, owner string) error {
-	err := s.ctr.VerifyAndUpdateInvoiceInformation(uuid, id, string(hash), owner)
+func (s *Server) VerifyAndUpdateInvoiceInformation(UUID, id, hash, owner string) error {
+	err := s.ctr.VerifyAndUpdateInvoiceInformation(UUID, id, string(hash), owner)
 	if err != nil {
 		return err
 	} else {
@@ -137,8 +137,8 @@ func (s *Server) VerifyAndUpdateInvoiceInformation(uuid, id, hash, owner string)
 }
 
 // 历史交易信息之入库信息
-func (s *Server) IssueHistoricalUsedInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalUsedInformation(uuid, id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalUsedInformation(UUID, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalUsedInformation(UUID, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -147,8 +147,8 @@ func (s *Server) IssueHistoricalUsedInformation(uuid, id, params string, cipher,
 }
 
 // 历史交易信息之结算信息
-func (s *Server) IssueHistoricalSettleInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalSettleInformation(uuid, id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalSettleInformation(UUID, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalSettleInformation(UUID, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -157,8 +157,8 @@ func (s *Server) IssueHistoricalSettleInformation(uuid, id, params string, ciphe
 }
 
 // 历史交易信息之订单信息
-func (s *Server) IssueHistoricalOrderInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalOrderInformation(uuid, id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalOrderInformation(UUID, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalOrderInformation(UUID, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -167,8 +167,8 @@ func (s *Server) IssueHistoricalOrderInformation(uuid, id, params string, cipher
 }
 
 // 历史交易信息之应收账款信息
-func (s *Server) IssueHistoricalReceivableInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssueHistoricalReceivableInformation(uuid, id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssueHistoricalReceivableInformation(UUID, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssueHistoricalReceivableInformation(UUID, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -177,8 +177,8 @@ func (s *Server) IssueHistoricalReceivableInformation(uuid, id, params string, c
 }
 
 // 入池数据之供应商生产计划信息
-func (s *Server) IssuePoolPlanInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssuePoolPlanInformation(uuid, id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssuePoolPlanInformation(UUID, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssuePoolPlanInformation(UUID, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -187,8 +187,8 @@ func (s *Server) IssuePoolPlanInformation(uuid, id, params string, cipher, encry
 }
 
 // 入池数据之供应商生产入库信息
-func (s *Server) IssuePoolUsedInformation(uuid, id, params string, cipher, encryptionKey []byte) error {
-	err := s.ctr.IssuePoolUsedInformation(uuid, id, params, string(cipher), string(encryptionKey))
+func (s *Server) IssuePoolUsedInformation(UUID, id, params string, cipher, encryptionKey []byte) error {
+	err := s.ctr.IssuePoolUsedInformation(UUID, id, params, string(cipher), string(encryptionKey))
 	if err != nil {
 		return err
 	} else {
@@ -197,8 +197,8 @@ func (s *Server) IssuePoolUsedInformation(uuid, id, params string, cipher, encry
 }
 
 // 上传融资意向请求
-func (s *Server) IssueSupplierFinancingApplication(uuid, id, financingid string, cipher, encryptionKey, signed []byte) error {
-	err := s.ctr.IssueSupplierFinancingApplication(uuid, id, financingid, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueSupplierFinancingApplication(UUID, id, financingid string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.IssueSupplierFinancingApplication(UUID, id, financingid, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -207,29 +207,11 @@ func (s *Server) IssueSupplierFinancingApplication(uuid, id, financingid string,
 }
 
 // 回款信息
-func (s *Server) UpdatePushPaymentAccount(uuid, id string, cipher, encryptionKey, signed []byte) error {
-	err := s.ctr.UpdatePushPaymentAccounts(uuid, id, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) UpdatePushPaymentAccount(UUID, id string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.UpdatePushPaymentAccounts(UUID, id, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
 		return nil
 	}
 }
-
-// // 插入日志
-// func (s *Server) InsertLog(level string, info string) {
-// 	time := time.Now().String()[0:19]
-// 	err := s.sql.InsertLogs(time, level, info)
-// 	if err != nil {
-// 		logrus.Errorln(err)
-// 	}
-// }
-
-// // 插入日志
-// func (s *Server) InsertChainLog(level string, title string, info string) {
-// 	time := time.Now().String()[0:19]
-// 	err := s.sql.InserChainInfos(time, level, title, info)
-// 	if err != nil {
-// 		logrus.Errorln(err)
-// 	}
-// }

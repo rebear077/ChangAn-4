@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"ethereum/go-ethereum/common"
+	"ethereum/go-ethereum/common/hexutil"
+
 	"github.com/spf13/cobra"
 )
 

@@ -3,7 +3,7 @@ package commandline
 import (
 	"fmt"
 
-	"github.com/FISCO-BCOS/go-sdk/precompiled/cns"
+	"github.com/rebear077/changan/precompiled/cns"
 	"github.com/spf13/cobra"
 )
 

@@ -75,7 +75,7 @@ func (p *Promoter) InvoiceInfoHandler() {
 	if len(p.DataApi.InvoicePool) != 0 {
 		logs.Infoln("开始同步发票信息")
 		var wg sync.WaitGroup
-		invoices := make(map[string][]*receive.InvoiceInformation, 0)
+		invoices := make(map[string]*receive.InvoiceInformation, 0)
 		p.DataApi.IssueInvoicemutex.Lock()
 		for uuid := range p.DataApi.InvoicePool {
 			invoices[uuid] = p.DataApi.InvoicePool[uuid]
@@ -109,10 +109,19 @@ func (p *Promoter) InvoiceInfoHandler() {
 		for {
 			counter := 0
 			uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
+				uptoChain.InvoiceMapLock.Lock()
 				mapping := value.(map[string]*uptoChain.ResponseMessage)
 				counter += len(mapping)
+				for _, message := range mapping {
+					if !message.GetWhetherOK() {
+						counter = 0
+						break
+					}
+				}
+				uptoChain.InvoiceMapLock.Unlock()
 				return true
 			})
+			// fmt.Println(counter)
 			if counter == len(messages) {
 				p.DataApi.IssueInvoiceOKChan <- struct{}{}
 				for {
@@ -138,7 +147,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 	if len(p.DataApi.TransactionHistoryPool) != 0 {
 		logs.Infoln("开始历史交易信息")
 		var wg sync.WaitGroup
-		hisinfos := make(map[string][]*receive.TransactionHistory, 0)
+		hisinfos := make(map[string]*receive.TransactionHistory, 0)
 		p.DataApi.TransactionHistorymutex.Lock()
 		for uuid := range p.DataApi.TransactionHistoryPool {
 			hisinfos[uuid] = p.DataApi.TransactionHistoryPool[uuid]
@@ -202,8 +211,16 @@ func (p *Promoter) HistoricalInfoHandler() {
 			for {
 				counter := 0
 				uptoChain.HistoricalOrderMap.Range(func(key, value interface{}) bool {
+					uptoChain.HistoricalOrderMapLock.Lock()
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
+					for _, message := range mapping {
+						if !message.GetWhetherOK() {
+							counter = 0
+							break
+						}
+					}
+					uptoChain.HistoricalOrderMapLock.Unlock()
 					return true
 				})
 				if counter == len(hisOrderMessage) {
@@ -231,8 +248,16 @@ func (p *Promoter) HistoricalInfoHandler() {
 			for {
 				counter := 0
 				uptoChain.HistoricalSettleMap.Range(func(key, value interface{}) bool {
+					uptoChain.HistoricalSettleMapLock.Lock()
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
+					for _, message := range mapping {
+						if !message.GetWhetherOK() {
+							counter = 0
+							break
+						}
+					}
+					uptoChain.HistoricalSettleMapLock.Unlock()
 					return true
 				})
 				if counter == len(hisOrderMessage) {
@@ -260,8 +285,16 @@ func (p *Promoter) HistoricalInfoHandler() {
 			for {
 				counter := 0
 				uptoChain.HistoricalUsedMap.Range(func(key, value interface{}) bool {
+					uptoChain.HistoricalUsedMapLock.Lock()
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
+					for _, message := range mapping {
+						if !message.GetWhetherOK() {
+							counter = 0
+							break
+						}
+					}
+					uptoChain.HistoricalUsedMapLock.Unlock()
 					return true
 				})
 				if counter == len(hisOrderMessage) {
@@ -289,8 +322,16 @@ func (p *Promoter) HistoricalInfoHandler() {
 			for {
 				counter := 0
 				uptoChain.HistoricalReceivableMap.Range(func(key, value interface{}) bool {
+					uptoChain.HistoricalReceivableMapLock.Lock()
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
+					for _, message := range mapping {
+						if !message.GetWhetherOK() {
+							counter = 0
+							break
+						}
+					}
+					uptoChain.HistoricalReceivableMapLock.Unlock()
 					return true
 				})
 				if counter == len(hisOrderMessage) {
@@ -322,7 +363,7 @@ func (p *Promoter) PoolInfoHandler() {
 		// logrus.Infoln("开始入池数据信息")
 		logs.Infoln("开始入池数据信息")
 		var wg sync.WaitGroup
-		poolInfos := make(map[string][]*receive.EnterpoolData, 0)
+		poolInfos := make(map[string]*receive.EnterpoolData, 0)
 		p.DataApi.EnterpoolDatamutex.Lock()
 		for uuid := range p.DataApi.EnterpoolDataPool {
 			poolInfos[uuid] = p.DataApi.EnterpoolDataPool[uuid]
@@ -377,8 +418,16 @@ func (p *Promoter) PoolInfoHandler() {
 			for {
 				counter := 0
 				uptoChain.PoolPlanMap.Range(func(key, value interface{}) bool {
+					uptoChain.PoolPlanMapLock.Lock()
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
+					for _, message := range mapping {
+						if !message.GetWhetherOK() {
+							counter = 0
+							break
+						}
+					}
+					uptoChain.PoolPlanMapLock.Unlock()
 					return true
 				})
 				if counter == len(planMessages) {
@@ -405,8 +454,16 @@ func (p *Promoter) PoolInfoHandler() {
 			for {
 				counter := 0
 				uptoChain.PoolUsedMap.Range(func(key, value interface{}) bool {
+					uptoChain.PoolUsedMapLock.Lock()
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
+					for _, message := range mapping {
+						if !message.GetWhetherOK() {
+							counter = 0
+							break
+						}
+					}
+					uptoChain.PoolUsedMapLock.Unlock()
 					return true
 				})
 				if counter == len(planMessages) {
@@ -463,8 +520,16 @@ func (p *Promoter) ModifyInvoiceInfoHandler(invoices map[string]map[string]map[i
 	for {
 		counter := 0
 		uptoChain.ModifyInvoiceMap.Range(func(key, value interface{}) bool {
+			uptoChain.ModifyInvoiceMapLock.Lock()
 			mapping := value.(map[string]*uptoChain.ResponseMessage)
 			counter += len(mapping)
+			for _, message := range mapping {
+				if !message.GetWhetherOK() {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.ModifyInvoiceMapLock.Unlock()
 			return true
 		})
 		if counter == len(messages) {
@@ -522,16 +587,24 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 		}
 		for {
 			counter := 0
-			uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+			uptoChain.FinancingApplicationMap.Range(func(key, value interface{}) bool {
+				uptoChain.FinancingApplicationMapLock.Lock()
 				mapping := value.(map[string]*uptoChain.ResponseMessage)
 				counter += len(mapping)
+				for _, message := range mapping {
+					if !message.GetWhetherOK() {
+						counter = 0
+						break
+					}
+				}
+				uptoChain.FinancingApplicationMapLock.Unlock()
 				return true
 			})
 			if counter == len(messages) {
 				p.DataApi.FinancingIntentionOKChan <- struct{}{}
 				for {
 					flag := 0
-					uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+					uptoChain.FinancingApplicationMap.Range(func(key, value interface{}) bool {
 						if key != nil {
 							flag++
 							return false
@@ -552,7 +625,7 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 	if len(p.DataApi.CollectionAccountPool) != 0 {
 		logs.Infoln("开始同步回款信息")
 		var wg sync.WaitGroup
-		payinfos := make(map[string][]*receive.CollectionAccount, 0)
+		payinfos := make(map[string]*receive.CollectionAccount, 0)
 		p.DataApi.CollectionAccountmutex.Lock()
 		for uuid := range p.DataApi.CollectionAccountPool {
 			payinfos[uuid] = p.DataApi.CollectionAccountPool[uuid]
@@ -588,8 +661,16 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 		for {
 			counter := 0
 			uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+				uptoChain.CollectionAccountMapLock.Lock()
 				mapping := value.(map[string]*uptoChain.ResponseMessage)
 				counter += len(mapping)
+				for _, message := range mapping {
+					if !message.GetWhetherOK() {
+						counter = 0
+						break
+					}
+				}
+				uptoChain.CollectionAccountMapLock.Unlock()
 				return true
 			})
 			if counter == len(messages) {

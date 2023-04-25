@@ -1,23 +1,17 @@
 package main
 
-import (
-	"fmt"
+// type deployer struct {
+// 	ctr *uptoChain.Controller
+// }
 
-	uptoChain "github.com/rebear077/changan/tochain"
-)
+// func NewDeploy() *deployer {
+// 	return &deployer{
+// 		ctr: uptoChain.NewController(),
+// 	}
+// }
 
-type deployer struct {
-	ctr *uptoChain.Controller
-}
-
-func NewDeploy() *deployer {
-	return &deployer{
-		ctr: uptoChain.NewController(),
-	}
-}
-
-func main() {
-	deploy := NewDeploy()
-	res := deploy.ctr.DeployContract()
-	fmt.Println(res)
-}
+// func main() {
+// 	deploy := NewDeploy()
+// 	res := deploy.ctr.DeployContract()
+// 	fmt.Println(res)
+// }
