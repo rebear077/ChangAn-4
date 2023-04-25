@@ -6,14 +6,12 @@ import (
 	"log"
 	"math/big"
 	"strings"
-	"sync"
 
 	"ethereum/go-ethereum/common"
 
 	"github.com/rebear077/changan/abi"
 	smartcontract "github.com/rebear077/changan/contract"
 	"github.com/rebear077/changan/core/types"
-	"github.com/rebear077/changan/errorhandle"
 	logloader "github.com/rebear077/changan/logs"
 	"github.com/sirupsen/logrus"
 )
@@ -31,30 +29,6 @@ const (
 	UpdatePushPaymentAccounts        = "UpdatePushPaymentAccounts"
 	PoolPlanInfo                     = "PoolPlanInfo"
 	PoolUsedInfo                     = "PoolUsedInfo"
-)
-
-var (
-	supplierCounter             = 0
-	issueinvoiceCounter         = 0
-	updateinvoiceCounter        = 0
-	historicalUsedCounter       = 0
-	historicalSettleCounter     = 0
-	historicalOrderCounter      = 0
-	historicalReceivableCounter = 0
-	paymentAccountsCounter      = 0
-	poolUsedCounter             = 0
-	poolPlanCounter             = 0
-
-	supplierCounterMutex             sync.Mutex
-	issueinvoiceCounterMutex         sync.Mutex
-	updateinvoiceCounterMutex        sync.Mutex
-	historicalUsedCounterMutex       sync.Mutex
-	historicalSettleCounterMutex     sync.Mutex
-	historicalOrderCounterMutex      sync.Mutex
-	historicalReceivableCounterMutex sync.Mutex
-	paymentAccountsCounterMutex      sync.Mutex
-	poolUsedCounterMutex             sync.Mutex
-	poolPlanCounterMutex             sync.Mutex
 )
 
 // 融资意向
@@ -180,15 +154,39 @@ func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receip
 		if err != nil {
 			fmt.Println(err)
 		}
+		var message string
 		parseRet, ok := ret.([]interface{})
 		if !ok {
 			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
 		}
-		errorhandle.ERRDealer.InsertError(UpdateInvoiceInformation, receipt.TransactionHash, parseRet)
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		ModifyInvoiceMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			ModifyInvoiceMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	} else {
-		updateinvoiceCounterMutex.Lock()
-		updateinvoiceCounter += 1
-		updateinvoiceCounterMutex.Unlock()
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		ModifyInvoiceMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			ModifyInvoiceMap.LoadOrStore(uuid, mapping)
+			return true
+		})
 	}
 }
 
@@ -581,121 +579,4 @@ func parseOutput(abiStr, name string, receipt *types.Receipt) (*big.Int, error) 
 		return nil, err
 	}
 	return ret, nil
-}
-func QuerySupplierSuccessCounter() int {
-	supplierCounterMutex.Lock()
-	temp := supplierCounter
-	supplierCounterMutex.Unlock()
-	return temp
-}
-func QueryIssueInvoiceSuccessCounter() int {
-	issueinvoiceCounterMutex.Lock()
-	temp := issueinvoiceCounter
-	issueinvoiceCounterMutex.Unlock()
-	return temp
-}
-func QueryUpdateInvoiceSuccessCounter() int {
-	updateinvoiceCounterMutex.Lock()
-	temp := updateinvoiceCounter
-	updateinvoiceCounterMutex.Unlock()
-	return temp
-}
-func QueryHistoricalUsedCounter() int {
-	historicalUsedCounterMutex.Lock()
-	temp := historicalUsedCounter
-	historicalUsedCounterMutex.Unlock()
-	return temp
-}
-func QueryHistoricalOrderCounter() int {
-	historicalOrderCounterMutex.Lock()
-	temp := historicalOrderCounter
-	historicalOrderCounterMutex.Unlock()
-	return temp
-}
-func QueryHistoricalSettleCounter() int {
-	historicalSettleCounterMutex.Lock()
-	temp := historicalSettleCounter
-	historicalSettleCounterMutex.Unlock()
-	return temp
-}
-func QueryHistoricalReceivableCounter() int {
-	historicalReceivableCounterMutex.Lock()
-	temp := historicalReceivableCounter
-	historicalReceivableCounterMutex.Unlock()
-	return temp
-}
-func QueryPaymentAccountsCounter() int {
-	paymentAccountsCounterMutex.Lock()
-	temp := paymentAccountsCounter
-	paymentAccountsCounterMutex.Unlock()
-	return temp
-}
-func QueryPoolPlanCounter() int {
-	poolPlanCounterMutex.Lock()
-	temp := poolPlanCounter
-	poolPlanCounterMutex.Unlock()
-	return temp
-}
-func QueryPoolUsedCounter() int {
-	poolUsedCounterMutex.Lock()
-	temp := poolUsedCounter
-	poolUsedCounterMutex.Unlock()
-	return temp
-}
-
-func ResetSupplierSuccessCounter() {
-	supplierCounterMutex.Lock()
-	supplierCounter = 0
-	supplierCounterMutex.Unlock()
-
-}
-func ResetIssueInvoiceSuccessCounter() {
-	issueinvoiceCounterMutex.Lock()
-	issueinvoiceCounter = 0
-	issueinvoiceCounterMutex.Unlock()
-}
-func ResetUpdateInvoiceSuccessCounter() {
-	updateinvoiceCounterMutex.Lock()
-	updateinvoiceCounter = 0
-	updateinvoiceCounterMutex.Unlock()
-}
-func ResetHistoricalUsedCounter() {
-	historicalUsedCounterMutex.Lock()
-	historicalUsedCounter = 0
-	historicalUsedCounterMutex.Unlock()
-
-}
-func ResetHistoricalOrderCounter() {
-	historicalOrderCounterMutex.Lock()
-	historicalOrderCounter = 0
-	historicalOrderCounterMutex.Unlock()
-
-}
-func ResetHistoricalSettleCounter() {
-	historicalSettleCounterMutex.Lock()
-	historicalSettleCounter = 0
-	historicalSettleCounterMutex.Unlock()
-
-}
-func ResetHistoricalReceivableCounter() {
-	historicalReceivableCounterMutex.Lock()
-	historicalReceivableCounter = 0
-	historicalReceivableCounterMutex.Unlock()
-
-}
-func ResetPaymentAccountsCounter() {
-	paymentAccountsCounterMutex.Lock()
-	paymentAccountsCounter = 0
-	paymentAccountsCounterMutex.Unlock()
-
-}
-func ResetPoolPlanCounter() {
-	poolPlanCounterMutex.Lock()
-	poolPlanCounter = 0
-	poolPlanCounterMutex.Unlock()
-}
-func ResetPoolUsedCounter() {
-	poolUsedCounterMutex.Lock()
-	poolUsedCounter = 0
-	poolUsedCounterMutex.Unlock()
 }

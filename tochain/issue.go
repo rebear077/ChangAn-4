@@ -30,6 +30,7 @@ var (
 	PoolUsedMap             sync.Map
 	CollectionAccountMap    sync.Map
 	FinancingApplicationMap sync.Map
+	ModifyInvoiceMap        sync.Map
 )
 
 type ResponseMessage struct {
@@ -198,11 +199,15 @@ func (c *Controller) IssueInvoiceInformation(uuid, id, params, data, key string)
 
 // 验证并更新发票信息的owner字段
 // 入口参数：id：供应商编号:发票的年月日;hash：发票哈希值；owner：融资意向申请编号
-func (c *Controller) VerifyAndUpdateInvoiceInformation(id, hash, owner string) error {
-	_, err := c.session.AsyncUpdateInvoiceInformationStorage(invokeVerifyAndUpdateInvoiceInformationStorageHandler, id, hash, owner)
+func (c *Controller) VerifyAndUpdateInvoiceInformation(uuid, id, hash, owner string) error {
+	transaction, err := c.session.AsyncUpdateInvoiceInformationStorage(invokeVerifyAndUpdateInvoiceInformationStorageHandler, id, hash, owner)
 	if err != nil {
 		return err
 	}
+	rsp := NewResponseMessage()
+	mapping := make(map[string]*ResponseMessage)
+	mapping[transaction.Hash().String()] = rsp
+	ModifyInvoiceMap.LoadOrStore(uuid, mapping)
 	return nil
 }
 

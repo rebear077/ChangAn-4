@@ -127,8 +127,8 @@ func (s *Server) IssueInvoiceInformation(uuid, id, params string, cipher, encryp
 		return nil
 	}
 }
-func (s *Server) VerifyAndUpdateInvoiceInformation(id, owner string, hash []byte) error {
-	err := s.ctr.VerifyAndUpdateInvoiceInformation(id, string(hash), owner)
+func (s *Server) VerifyAndUpdateInvoiceInformation(uuid, id, hash, owner string) error {
+	err := s.ctr.VerifyAndUpdateInvoiceInformation(uuid, id, string(hash), owner)
 	if err != nil {
 		return err
 	} else {

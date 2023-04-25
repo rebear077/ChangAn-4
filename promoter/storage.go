@@ -37,6 +37,14 @@ type packedFinancingMessage struct {
 	encryptionKey []byte
 	signed        []byte
 }
+type packedModifyInvoiceMessage struct {
+	financingID   string
+	uuid          string
+	header        string
+	sign          string
+	cipher        []byte
+	encryptionKey []byte
+}
 
 // 特别针对发票信息的Message结构体
 type packedInvoiceMessage struct {
@@ -101,7 +109,20 @@ func (p *Pools) InsertInvoice(packed packedInvoiceMessage, name string, poolType
 		panic("池子类型错误")
 	}
 }
+func (p *Pools) InsertModifyInvoice(packed packedModifyInvoiceMessage, name string, poolType string) {
+	if !verify(name) {
+		panic("指定方法名称错误")
+	}
+	if poolType == "fast" {
+		p.fastPool.insertModifyInvoiceMessage(packed, name)
 
+	} else if poolType == "slow" {
+		p.slowPool.insertModifyInvoiceMessage(packed, name)
+
+	} else {
+		panic("池子类型错误")
+	}
+}
 func (p *Pools) InsertFinancing(packed packedFinancingMessage, name string, poolType string) {
 	if !verify(name) {
 		panic("指定方法名称错误")
@@ -220,6 +241,11 @@ func (e *encryptedPool) insertInvoiceMessage(packed packedInvoiceMessage, name s
 	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
 	e.encryptedMessageMutex.Unlock()
 }
+func (e *encryptedPool) insertModifyInvoiceMessage(packed packedModifyInvoiceMessage, name string) {
+	e.encryptedMessageMutex.Lock()
+	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
+	e.encryptedMessageMutex.Unlock()
+}
 func (e *encryptedPool) insertFinancingMessage(packed packedFinancingMessage, name string) {
 	e.encryptedMessageMutex.Lock()
 	e.encryptedMessage[name] = append(e.encryptedMessage[name], packed)
@@ -261,6 +287,11 @@ func (p *pendingPool) insertMessage(packed packedMessage, name string) {
 
 // 特别针对发票信息的insertMessage
 func (p *pendingPool) insertInvoiceMessage(packed packedInvoiceMessage, name string) {
+	p.pendingPoolMutex.Lock()
+	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
+	p.pendingPoolMutex.Unlock()
+}
+func (p *pendingPool) insertModifyInvoiceMessage(packed packedModifyInvoiceMessage, name string) {
 	p.pendingPoolMutex.Lock()
 	p.pendingMessage[name] = append(p.pendingMessage[name], packed)
 	p.pendingPoolMutex.Unlock()

@@ -454,24 +454,24 @@ func (p *Promoter) ModifyInvoiceInfoHandler(invoices map[string]map[string]map[i
 	wg.Wait()
 	messages := p.encryptedPool.QueryMessages("modifyinvoice", "fast")
 	for _, message := range messages {
-		temp, _ := message.(packedInvoiceMessage)
-		err := p.server.VerifyAndUpdateInvoiceInformation(temp.uuid, temp.header, temp.params, temp.cipher, temp.encryptionKey)
+		temp, _ := message.(packedModifyInvoiceMessage)
+		err := p.server.VerifyAndUpdateInvoiceInformation(temp.uuid, temp.header, temp.sign, temp.financingID)
 		if err != nil {
 			logs.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
 		}
 	}
 	for {
 		counter := 0
-		uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
+		uptoChain.ModifyInvoiceMap.Range(func(key, value interface{}) bool {
 			mapping := value.(map[string]*uptoChain.ResponseMessage)
 			counter += len(mapping)
 			return true
 		})
 		if counter == len(messages) {
-			p.DataApi.IssueInvoiceOKChan <- struct{}{}
+			p.DataApi.ModifyInvoiceOKChan <- struct{}{}
 			for {
 				flag := 0
-				uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
+				uptoChain.ModifyInvoiceMap.Range(func(key, value interface{}) bool {
 					if key != nil {
 						flag++
 						return false
@@ -517,7 +517,6 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 			temp, _ := message.(packedFinancingMessage)
 			err := p.server.IssueSupplierFinancingApplication(temp.uuid, temp.header, temp.financingid, temp.cipher, temp.encryptionKey, temp.signed)
 			if err != nil {
-				// logrus.Errorln("融资意向请求上链失败,", "失败信息为:", err)
 				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
 			}
 		}
@@ -655,16 +654,17 @@ func (p *Promoter) packModifyInvoiceInfo(finangcingID, UUID string, header strin
 		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
 	}
 	//info是发票信息的字符串形式，各个参数之间用逗号分割
-	fields := strings.Split(info, ",")
-	temp := packedInvoiceMessage{}
+	// fields := strings.Split(info, ",")
+	temp := packedModifyInvoiceMessage{}
 	//参数11是开票日期，参数8是发票类型，参数14是发票号码
 	temp.uuid = UUID
-	temp.params = fields[11] + "," + fields[8] + "," + fields[14] + "," + string(signed) + "," + ""
+	temp.sign = string(signed)
+	// temp.params = fields[11] + "," + fields[8] + "," + fields[14] + "," + string(signed) + "," + ""
 	temp.cipher = cipher
 	temp.encryptionKey = encryptionKey
 	temp.header = header
 	temp.financingID = finangcingID
-	p.encryptedPool.InsertInvoice(temp, method, poolType)
+	p.encryptedPool.InsertModifyInvoice(temp, method, poolType)
 }
 func (p *Promoter) packFinancingInfo(UUID, header, info, poolType, method string) {
 	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
