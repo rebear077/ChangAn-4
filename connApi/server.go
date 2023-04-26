@@ -172,6 +172,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 					f.TransactionHistorymutex.Lock()
 					f.TransactionHistoryPool[id.String()] = messages
 					f.TransactionHistorymutex.Unlock()
+					fmt.Println(messages)
 					<-f.IssueHistoryUsedInfoOKChan
 					<-f.IssueHistoricalOrderInfoOKChan
 					<-f.IssueHistoricalReceivableInfoOKChan
@@ -191,6 +192,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 									}
 								}
 								uptoChain.HistoricalOrderMapLock.Unlock()
+								uptoChain.HistoricalOrderMap.Delete(uuid)
 							}
 						}
 						return true
@@ -209,6 +211,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 									}
 								}
 								uptoChain.HistoricalSettleMapLock.Unlock()
+								uptoChain.HistoricalSettleMap.Delete(uuid)
 							}
 						}
 						return true
@@ -227,6 +230,8 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 									}
 								}
 								uptoChain.HistoricalUsedMapLock.Unlock()
+								uptoChain.HistoricalUsedMap.Delete(uuid)
+
 							}
 						}
 						return true
@@ -245,6 +250,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 									}
 								}
 								uptoChain.HistoricalReceivableMapLock.Unlock()
+								uptoChain.HistoricalReceivableMap.Delete(uuid)
 							}
 						}
 						return true
@@ -296,6 +302,7 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 						logrus.Fatalf("newChannelMessage error: %v", err)
 					}
 					messages.UUID = id.String()
+					fmt.Println(".....", messages)
 					f.EnterpoolDatamutex.Lock()
 					f.EnterpoolDataPool[id.String()] = messages
 					f.EnterpoolDatamutex.Unlock()
@@ -316,6 +323,7 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 									}
 								}
 								uptoChain.PoolPlanMapLock.Unlock()
+								uptoChain.PoolPlanMap.Delete(uuid)
 							}
 						}
 						return true
@@ -334,6 +342,7 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 									}
 								}
 								uptoChain.PoolUsedMapLock.Unlock()
+								uptoChain.PoolUsedMap.Delete(uuid)
 							}
 						}
 						return true
@@ -394,25 +403,48 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 					f.FinancingIntentionWithSelectedInfosMutex.Lock()
 					f.FinancingIntentionWithSelectedInfosPool[id.String()] = &message
 					f.FinancingIntentionWithSelectedInfosMutex.Unlock()
-					// <-f.IssueInvoiceOKChan
-					// jsonData := NewPackedResponse()
-					// uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
-					// 	if uuid, ok := key.(string); ok {
-					// 		if uuid == id.String() {
-					// 			mapping := value.(map[string]*uptoChain.ResponseMessage)
-					// 			for txHash, message := range mapping {
-					// 				if message.GetWhetherOK() {
-					// 					jsonData.Success[txHash] = message
-					// 				} else {
-					// 					jsonData.Fail[txHash] = message
-					// 				}
-					// 			}
-					// 		}
-					// 		uptoChain.InvoiceMap.Delete(uuid)
-					// 	}
-					// 	return true
-					// })
-					// fmt.Fprint(writer, jsonData)
+					<-f.FinancingIntentionOKChan
+					<-f.ModifyInvoiceOKChan
+					jsonData := NewPackedResponse()
+					uptoChain.FinancingApplicationMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								uptoChain.FinancingApplicationMapLock.Lock()
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("FinancingApplication:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = *message
+									} else {
+										jsonData.Fail[txHash] = *message
+									}
+								}
+								uptoChain.FinancingApplicationMapLock.Unlock()
+								uptoChain.FinancingApplicationMap.Delete(uuid)
+							}
+						}
+						return true
+					})
+					uptoChain.ModifyInvoiceMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								uptoChain.ModifyInvoiceMapLock.Lock()
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("ModifyInvoice:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = *message
+									} else {
+										jsonData.Fail[txHash] = *message
+									}
+								}
+								uptoChain.ModifyInvoiceMapLock.Unlock()
+								uptoChain.ModifyInvoiceMap.Delete(uuid)
+							}
+						}
+						return true
+					})
+					fmt.Fprint(writer, jsonData)
 				}
 			} else {
 				jsonData := timeExceeded()

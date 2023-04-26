@@ -237,7 +237,7 @@ func EncodeEnterpoolData(list map[string]*receive.EnterpoolData) map[string]map[
 
 func EncodeFinancingIntention(l receive.FinancingIntention) map[string]string {
 	mapping := make(map[string]string)
-	header := l.Customerid
+	header := l.Financeid
 	tempStr := l.Custcdlinkposition + "," + l.Custcdlinkname + "," + l.Certificateid + "," + l.Corpname + "," + l.Remark + "," + l.Bankcontact + "," + l.Banklinkname + "," + l.Custcdcontact + "," + l.Customerid + "," + l.Financeid + "," + l.Cooperationyears + "," + l.Certificatetype + "," + l.Intercustomerid
 	mapping[header] = tempStr
 	return mapping

@@ -114,7 +114,7 @@ func (p *Promoter) InvoiceInfoHandler() {
 				mapping := value.(map[string]*uptoChain.ResponseMessage)
 				counter += len(mapping)
 				for _, message := range mapping {
-					if !message.GetWhetherOK() {
+					if message.GetMessage() == "" {
 						counter = 0
 						break
 					}
@@ -156,6 +156,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 		}
 		p.DataApi.TransactionHistorymutex.Unlock()
 		mapping := server.EncodeTransactionHistory(hisinfos)
+		fmt.Println(mapping)
 		for UUID, historyInfos := range mapping {
 			for index := range historyInfos {
 				for header, info := range historyInfos[index] {
@@ -164,6 +165,10 @@ func (p *Promoter) HistoricalInfoHandler() {
 					wg.Add(1)
 					go func(UUID, tempheader, tempinfo string) {
 						usedvalue, settlevalue, ordervalue, receivablevalue := server.HistoricalInformationSlice(tempheader, tempinfo, 1)
+						logrus.Infoln("usedvalue", usedvalue)
+						logrus.Infoln("settlevalue", settlevalue)
+						logrus.Infoln("ordervalue", ordervalue)
+						logrus.Infoln("receivablevalue", receivablevalue)
 						p.packHistoricalInfos(UUID, tempheader, usedvalue, "fast", "historicalUsed")
 						p.packHistoricalInfos(UUID, tempheader, settlevalue, "fast", "historicalSettle")
 						p.packHistoricalInfos(UUID, tempheader, ordervalue, "fast", "historicalOrder")
@@ -216,7 +221,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
 					for _, message := range mapping {
-						if !message.GetWhetherOK() {
+						if message.GetMessage() == "" {
 							counter = 0
 							break
 						}
@@ -253,7 +258,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
 					for _, message := range mapping {
-						if !message.GetWhetherOK() {
+						if message.GetMessage() == "" {
 							counter = 0
 							break
 						}
@@ -261,7 +266,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 					uptoChain.HistoricalSettleMapLock.Unlock()
 					return true
 				})
-				if counter == len(hisOrderMessage) {
+				if counter == len(hisSettleMessage) {
 					p.DataApi.IssueHistoricalSettleInfoOKChan <- struct{}{}
 					for {
 						flag := 0
@@ -290,7 +295,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
 					for _, message := range mapping {
-						if !message.GetWhetherOK() {
+						if message.GetMessage() == "" {
 							counter = 0
 							break
 						}
@@ -298,7 +303,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 					uptoChain.HistoricalUsedMapLock.Unlock()
 					return true
 				})
-				if counter == len(hisOrderMessage) {
+				if counter == len(hisUsedMessage) {
 					p.DataApi.IssueHistoryUsedInfoOKChan <- struct{}{}
 					for {
 						flag := 0
@@ -327,7 +332,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
 					for _, message := range mapping {
-						if !message.GetWhetherOK() {
+						if message.GetMessage() == "" {
 							counter = 0
 							break
 						}
@@ -335,7 +340,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 					uptoChain.HistoricalReceivableMapLock.Unlock()
 					return true
 				})
-				if counter == len(hisOrderMessage) {
+				if counter == len(hisReceivableMessage) {
 					p.DataApi.IssueHistoricalReceivableInfoOKChan <- struct{}{}
 					for {
 						flag := 0
@@ -356,6 +361,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 			wg.Done()
 		}()
 		wg.Wait()
+		logrus.Infoln("outoutout")
 		logs.Println("退出")
 	}
 }
@@ -380,21 +386,14 @@ func (p *Promoter) PoolInfoHandler() {
 					wg.Add(1)
 					go func(UUID, tempheader, tempinfo string) {
 						var wwg sync.WaitGroup
-						fmt.Println("...........")
 						planvalue, providerusedvalue := server.PoolInformationSlice(tempheader, tempinfo, 1)
-						logrus.Infoln("plan:", planvalue)
-						logrus.Infoln("proivder:", providerusedvalue)
 						wwg.Add(2)
 						go func(UUID, tempheader string, planvalue []string) {
-
 							p.packPoolInfos(UUID, tempheader, planvalue, "fast", "poolPlan")
-
 							wwg.Done()
 						}(UUID, tempheader, planvalue)
 						go func(UUID, tempheader string, providerusedvalue []string) {
-
 							p.packPoolInfos(UUID, tempheader, providerusedvalue, "fast", "poolUsed")
-
 							wwg.Done()
 						}(UUID, tempheader, providerusedvalue)
 						wwg.Wait()
@@ -406,9 +405,6 @@ func (p *Promoter) PoolInfoHandler() {
 		wg.Wait()
 		planMessages := p.encryptedPool.QueryMessages("poolPlan", "fast")
 		usedMessages := p.encryptedPool.QueryMessages("poolUsed", "fast")
-		fmt.Println(planMessages...)
-		fmt.Println("[[[[[[[[")
-		fmt.Println(usedMessages...)
 		for _, message := range planMessages {
 			tempPlan, _ := message.(packedPoolMessage)
 			err := p.server.IssuePoolPlanInformation(tempPlan.uuid, tempPlan.header, tempPlan.params, tempPlan.cipher, tempPlan.encryptionKey)
@@ -418,7 +414,6 @@ func (p *Promoter) PoolInfoHandler() {
 		}
 		for _, message := range usedMessages {
 			tempUsed, _ := message.(packedPoolMessage)
-			fmt.Println(tempUsed, "......")
 			err := p.server.IssuePoolUsedInformation(tempUsed.uuid, tempUsed.header, tempUsed.params, tempUsed.cipher, tempUsed.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempUsed.header, "失败信息为:", err)
@@ -434,7 +429,7 @@ func (p *Promoter) PoolInfoHandler() {
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
 					for _, message := range mapping {
-						if !message.GetWhetherOK() {
+						if message.GetMessage() == "" {
 							counter = 0
 							break
 						}
@@ -470,7 +465,7 @@ func (p *Promoter) PoolInfoHandler() {
 					mapping := value.(map[string]*uptoChain.ResponseMessage)
 					counter += len(mapping)
 					for _, message := range mapping {
-						if !message.GetWhetherOK() {
+						if message.GetMessage() == "" {
 							counter = 0
 							break
 						}
@@ -479,7 +474,6 @@ func (p *Promoter) PoolInfoHandler() {
 					return true
 				})
 				if counter == len(usedMessages) {
-					fmt.Println(len(usedMessages))
 					p.DataApi.IssueEnterPoolUsedOKChan <- struct{}{}
 					for {
 						flag := 0
@@ -500,6 +494,7 @@ func (p *Promoter) PoolInfoHandler() {
 			wg.Done()
 		}()
 		wg.Wait()
+		logrus.Infoln("outout")
 		logs.Println("退出")
 	}
 }
@@ -537,7 +532,7 @@ func (p *Promoter) ModifyInvoiceInfoHandler(invoices map[string]map[string]map[i
 			mapping := value.(map[string]*uptoChain.ResponseMessage)
 			counter += len(mapping)
 			for _, message := range mapping {
-				if !message.GetWhetherOK() {
+				if message.GetMessage() == "" {
 					counter = 0
 					break
 				}
@@ -605,7 +600,7 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 				mapping := value.(map[string]*uptoChain.ResponseMessage)
 				counter += len(mapping)
 				for _, message := range mapping {
-					if !message.GetWhetherOK() {
+					if message.GetMessage() == "" {
 						counter = 0
 						break
 					}
@@ -637,15 +632,17 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 func (p *Promoter) PushPaymentAccountsInfoHandler() {
 	if len(p.DataApi.CollectionAccountPool) != 0 {
 		logs.Infoln("开始同步回款信息")
+		logrus.Infoln("开始同步回款信息")
 		var wg sync.WaitGroup
 		payinfos := make(map[string]*receive.CollectionAccount, 0)
 		p.DataApi.CollectionAccountmutex.Lock()
 		for uuid := range p.DataApi.CollectionAccountPool {
 			payinfos[uuid] = p.DataApi.CollectionAccountPool[uuid]
-			delete(p.DataApi.EnterpoolDataPool, uuid)
+			delete(p.DataApi.CollectionAccountPool, uuid)
 		}
 		p.DataApi.CollectionAccountmutex.Unlock()
 		mapping := server.EncodeCollectionAccount(payinfos)
+		fmt.Println(mapping)
 		for UUID, accounts := range mapping {
 			for index := range accounts {
 				for header, info := range accounts[index] {
@@ -678,7 +675,7 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 				mapping := value.(map[string]*uptoChain.ResponseMessage)
 				counter += len(mapping)
 				for _, message := range mapping {
-					if !message.GetWhetherOK() {
+					if message.GetMessage() == "" {
 						counter = 0
 						break
 					}

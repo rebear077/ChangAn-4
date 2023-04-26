@@ -1,6 +1,7 @@
 package jsonsplit
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -90,7 +91,7 @@ func SplitTransactionHistory(str string) TransactionHistory {
 		} else if flag == 2 {
 			if str[index] == '[' && str[index+1] == ',' {
 				flag = 3
-			} else if str[index] == ']' {
+			} else if str[index] == ']' && len(settleinfos) != 0 {
 				flag = 3
 			} else if str[index] != '[' && str[index] != ']' {
 				if len(settleinfos) == 0 && str[index] == ',' {
@@ -102,7 +103,7 @@ func SplitTransactionHistory(str string) TransactionHistory {
 		} else if flag == 3 {
 			if str[index] == '[' && str[index+1] == ',' {
 				flag = 4
-			} else if str[index] == ']' {
+			} else if str[index] == ']' && len(orderinfos) != 0 {
 				flag = 4
 			} else if str[index] != '[' && str[index] != ']' {
 				if len(orderinfos) == 0 && str[index] == ',' {
@@ -114,7 +115,7 @@ func SplitTransactionHistory(str string) TransactionHistory {
 		} else if flag == 4 {
 			if str[index] == '[' && str[index+1] == ',' {
 				flag = 5
-			} else if str[index] == ']' {
+			} else if str[index] == ']' && len(receivableinfos) != 0 {
 				flag = 5
 			} else if str[index] != '[' && str[index] != ']' {
 				if len(receivableinfos) == 0 && str[index] == ',' {
@@ -202,7 +203,7 @@ func SplitTransactionHistory(str string) TransactionHistory {
 }
 
 func SplitEnterpoolDataPool(str string) EnterpoolData {
-	// fmt.Println(str)
+	fmt.Println(str)
 	flag := 0
 	header := ""
 	planinfos := ""
@@ -228,7 +229,7 @@ func SplitEnterpoolDataPool(str string) EnterpoolData {
 		} else if flag == 2 {
 			if str[index] == '[' && str[index+1] == ',' {
 				flag = 3
-			} else if str[index] == ']' {
+			} else if str[index] == ']' && len(providerusedinfos) != 0 {
 				flag = 3
 			} else if str[index] != '[' && str[index] != ']' {
 				if len(providerusedinfos) == 0 && str[index] == ',' {

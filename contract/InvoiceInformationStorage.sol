@@ -51,6 +51,7 @@ contract InvoiceInformationStorage is Ownable {
         Entry entry = table.newEntry();
         entry.set("owner",_owner);
         Condition condition = table.newCondition();
+        require(_isHashExist(table, _id, _hash), "Hash not exists");
         condition.EQ("customerid", _id);
         condition.EQ("hash", _hash);
         int256 count = table.update(_id, entry,condition);
@@ -59,6 +60,7 @@ contract InvoiceInformationStorage is Ownable {
         } else {
             emit InvoiceInfoHashNotFound(_id, _hash, "未找到记录");
         }
+        
         return count;
     }
     function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {

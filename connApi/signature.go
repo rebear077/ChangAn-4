@@ -49,7 +49,7 @@ func rsaVerySignWithSha256(data []byte, signData string, keyBytes []byte) (bool,
 
 // 验证勾选的发票正确
 func VerifyInvoice(messages SelectedInfosAndFinancingApplication) bool {
-	flag := messages.FinancingApplication.Financeid
+	flag := messages.FinancingApplication.Customerid
 	for _, invoice := range messages.Invoice {
 		if invoice.CustomerID != flag {
 			return false

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/rebear077/changan/jsonsplit"
 )
 
@@ -129,7 +131,7 @@ func PoolInformationSlice(key string, value string, baselength int) ([]string, [
 			temp = "["
 		}
 	}
-	// fmt.Println("planinfos: ", planinfos)
+	fmt.Println("planinfos: ", planinfos)
 
 	//结算信息
 	temp = "["

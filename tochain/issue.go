@@ -51,7 +51,7 @@ type ResponseMessage struct {
 
 func NewResponseMessage() *ResponseMessage {
 	return &ResponseMessage{
-		message: "nil",
+		message: "",
 		ok:      false,
 	}
 }

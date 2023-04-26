@@ -27,6 +27,7 @@ contract SupplierFinancingApplication is Ownable {
     function insert(string memory _id, string memory _financingid, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
+        require(_isFinanceidExist(table, _id, _hash), "current financingid or Hash has already exist");
         entry.set("financingid",_financingid);
         entry.set("data",_data);
         entry.set("key",_key);
@@ -38,7 +39,7 @@ contract SupplierFinancingApplication is Ownable {
     function update(string memory _id, string memory _financingid, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
-        require(_isProcessIdExist(table, _id), "SupplierFinancingApplication select: current processId not exist");
+        require(_isProcessIdExist(table, _id), "SupplierFinancingApplication select: current financingId not exist");
         entry.set("financingid",_financingid);
         entry.set("data",_data);
         entry.set("key",_key);
@@ -54,6 +55,13 @@ contract SupplierFinancingApplication is Ownable {
     function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {
         Condition condition = _table.newCondition();
         return _table.select(_id, condition).size() != int(0);
+    }
+    function _isFinanceidExist(Table _table, string memory _id, string memory _hash) internal view returns(bool) {
+        Condition condition = _table.newCondition();
+        condition.EQ("id",_id);
+        condition.EQ("financingid",_id);
+        condition.EQ("hash",_hash);
+        return _table.select(_id, condition).size() == int(0);
     }
     function select(string memory _id) private view returns(Entries _entries){
         Table table = tf.openTable(TABLE_NAME);

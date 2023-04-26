@@ -8,7 +8,7 @@ import (
 // 时间戳验证
 func checkTimeStamp(formatTimeStr string) bool {
 	currentTime := time.Now() //当前时间
-	m, _ := time.ParseDuration("-30m")
+	m, _ := time.ParseDuration("-180m")
 	checktime := currentTime.Add(m)
 	checktime_str := checktime.String()
 	timeTemplate1 := "2006-01-02 15:04:05"
