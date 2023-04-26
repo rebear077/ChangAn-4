@@ -13,6 +13,7 @@ import (
 	receive "github.com/rebear077/changan/connApi"
 	logloader "github.com/rebear077/changan/logs"
 	uptoChain "github.com/rebear077/changan/tochain"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -360,7 +361,7 @@ func (p *Promoter) HistoricalInfoHandler() {
 }
 func (p *Promoter) PoolInfoHandler() {
 	if len(p.DataApi.EnterpoolDataPool) != 0 {
-		// logrus.Infoln("开始入池数据信息")
+		logrus.Infoln("开始入池数据信息")
 		logs.Infoln("开始入池数据信息")
 		var wg sync.WaitGroup
 		poolInfos := make(map[string]*receive.EnterpoolData, 0)
@@ -379,14 +380,21 @@ func (p *Promoter) PoolInfoHandler() {
 					wg.Add(1)
 					go func(UUID, tempheader, tempinfo string) {
 						var wwg sync.WaitGroup
+						fmt.Println("...........")
 						planvalue, providerusedvalue := server.PoolInformationSlice(tempheader, tempinfo, 1)
+						logrus.Infoln("plan:", planvalue)
+						logrus.Infoln("proivder:", providerusedvalue)
 						wwg.Add(2)
 						go func(UUID, tempheader string, planvalue []string) {
+
 							p.packPoolInfos(UUID, tempheader, planvalue, "fast", "poolPlan")
+
 							wwg.Done()
 						}(UUID, tempheader, planvalue)
 						go func(UUID, tempheader string, providerusedvalue []string) {
+
 							p.packPoolInfos(UUID, tempheader, providerusedvalue, "fast", "poolUsed")
+
 							wwg.Done()
 						}(UUID, tempheader, providerusedvalue)
 						wwg.Wait()
@@ -398,6 +406,9 @@ func (p *Promoter) PoolInfoHandler() {
 		wg.Wait()
 		planMessages := p.encryptedPool.QueryMessages("poolPlan", "fast")
 		usedMessages := p.encryptedPool.QueryMessages("poolUsed", "fast")
+		fmt.Println(planMessages...)
+		fmt.Println("[[[[[[[[")
+		fmt.Println(usedMessages...)
 		for _, message := range planMessages {
 			tempPlan, _ := message.(packedPoolMessage)
 			err := p.server.IssuePoolPlanInformation(tempPlan.uuid, tempPlan.header, tempPlan.params, tempPlan.cipher, tempPlan.encryptionKey)
@@ -407,6 +418,7 @@ func (p *Promoter) PoolInfoHandler() {
 		}
 		for _, message := range usedMessages {
 			tempUsed, _ := message.(packedPoolMessage)
+			fmt.Println(tempUsed, "......")
 			err := p.server.IssuePoolUsedInformation(tempUsed.uuid, tempUsed.header, tempUsed.params, tempUsed.cipher, tempUsed.encryptionKey)
 			if err != nil {
 				logs.Errorln("信息上链失败:", tempUsed.header, "失败信息为:", err)
@@ -466,7 +478,8 @@ func (p *Promoter) PoolInfoHandler() {
 					uptoChain.PoolUsedMapLock.Unlock()
 					return true
 				})
-				if counter == len(planMessages) {
+				if counter == len(usedMessages) {
+					fmt.Println(len(usedMessages))
 					p.DataApi.IssueEnterPoolUsedOKChan <- struct{}{}
 					for {
 						flag := 0
