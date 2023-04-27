@@ -571,6 +571,7 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 		}
 		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Unlock()
 		financingInfo, Invoices := server.HandleFinancingIntentionAndSelectedInfos(finintensWithSelectedInfos)
+		fmt.Println(Invoices)
 		go p.ModifyInvoiceInfoHandler(Invoices)
 		for UUID := range financingInfo {
 			for header, info := range financingInfo[UUID] {
@@ -739,6 +740,7 @@ func (p *Promoter) packInvoiceInfo(UUID string, header string, info string, pool
 	p.encryptedPool.InsertInvoice(temp, method, poolType)
 }
 func (p *Promoter) packModifyInvoiceInfo(finangcingID, UUID string, header string, info string, poolType string, method string) {
+
 	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
 	if err != nil {
 		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)

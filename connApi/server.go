@@ -384,11 +384,11 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 		}
 		if res {
 			if checkTimeStamp(formatTimeStr) {
-				var message SelectedInfosAndFinancingApplication
+				var message *SelectedInfosAndFinancingApplication
 				if json.NewDecoder(request.Body).Decode(&message) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
-				} else if !VerifyInvoice(message) {
+				} else if !VerifyInvoice(*message) {
 					jsonData := wrongVerifyInvoice()
 					fmt.Fprint(writer, jsonData)
 				} else {
@@ -397,11 +397,11 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 						logrus.Fatalf("newChannelMessage error: %v", err)
 					}
 					message.UUID = id.String()
-					for _, invoice := range message.Invoice {
-						invoice.FinancingID = message.FinancingApplication.Financeid
+					for index := range message.Invoice {
+						message.Invoice[index].FinancingID = message.FinancingApplication.Financeid
 					}
 					f.FinancingIntentionWithSelectedInfosMutex.Lock()
-					f.FinancingIntentionWithSelectedInfosPool[id.String()] = &message
+					f.FinancingIntentionWithSelectedInfosPool[id.String()] = message
 					f.FinancingIntentionWithSelectedInfosMutex.Unlock()
 					<-f.FinancingIntentionOKChan
 					<-f.ModifyInvoiceOKChan
