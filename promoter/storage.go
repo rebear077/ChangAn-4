@@ -33,6 +33,7 @@ type packedFinancingMessage struct {
 	uuid          string
 	header        string
 	financingid   string
+	state         string
 	cipher        []byte
 	encryptionKey []byte
 	signed        []byte

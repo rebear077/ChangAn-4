@@ -589,7 +589,7 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 		messages := p.encryptedPool.QueryMessages("application", "fast")
 		for _, message := range messages {
 			temp, _ := message.(packedFinancingMessage)
-			err := p.server.IssueSupplierFinancingApplication(temp.uuid, temp.header, temp.financingid, temp.cipher, temp.encryptionKey, temp.signed)
+			err := p.server.IssueSupplierFinancingApplication(temp.uuid, temp.header, temp.financingid+","+temp.state, temp.cipher, temp.encryptionKey, temp.signed)
 			if err != nil {
 				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
 			}
@@ -773,6 +773,7 @@ func (p *Promoter) packFinancingInfo(UUID, header, info, poolType, method string
 	temp.signed = signed
 	temp.header = header
 	temp.uuid = UUID
+	temp.state = "待审批"
 	p.encryptedPool.InsertFinancing(temp, method, poolType)
 }
 

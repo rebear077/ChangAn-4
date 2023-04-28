@@ -180,8 +180,8 @@ func (c *Controller) IssuePublicKeyStorage(id string, role string, key string) (
 
 // 上传融资意向请求
 // 入口参数：id：供应商编号；financingid:融资意向申请id；data：加密后的数据；key：加密后的key值；hash：哈希值
-func (c *Controller) IssueSupplierFinancingApplication(UUID, id, financingid, data, key, hash string) error {
-	transaction, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, financingid, data, key, hash)
+func (c *Controller) IssueSupplierFinancingApplication(UUID, id, params, data, key, hash string) error {
+	transaction, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, params, data, key, hash)
 	if err != nil {
 		return err
 	}
