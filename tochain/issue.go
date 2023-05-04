@@ -21,31 +21,31 @@ import (
 
 var Logs = logloader.NewLog()
 var (
-	InvoiceMap                sync.Map
-	HistoricalOrderMap        sync.Map
-	HistoricalReceivableMap   sync.Map
-	HistoricalUsedMap         sync.Map
-	HistoricalSettleMap       sync.Map
-	PoolPlanMap               sync.Map
-	PoolUsedMap               sync.Map
-	CollectionAccountMap      sync.Map
-	FinancingApplicationMap   sync.Map
-	ModifyInvoiceMap          sync.Map
-	ModifyFinancingMap        sync.Map
-	ModifyFinancingInvoiceMap sync.Map
+	InvoiceMap                   sync.Map
+	HistoricalOrderMap           sync.Map
+	HistoricalReceivableMap      sync.Map
+	HistoricalUsedMap            sync.Map
+	HistoricalSettleMap          sync.Map
+	PoolPlanMap                  sync.Map
+	PoolUsedMap                  sync.Map
+	CollectionAccountMap         sync.Map
+	FinancingApplicationIssueMap sync.Map
+	ModifyInvoiceMap             sync.Map
+	ModifyFinancingMap           sync.Map
+	ModifyInvoiceWhenMFAMap      sync.Map
 
-	InvoiceMapLock                sync.Mutex
-	HistoricalOrderMapLock        sync.Mutex
-	HistoricalReceivableMapLock   sync.Mutex
-	HistoricalUsedMapLock         sync.Mutex
-	HistoricalSettleMapLock       sync.Mutex
-	PoolPlanMapLock               sync.Mutex
-	PoolUsedMapLock               sync.Mutex
-	CollectionAccountMapLock      sync.Mutex
-	FinancingApplicationMapLock   sync.Mutex
-	ModifyInvoiceMapLock          sync.Mutex
-	ModifyFinancingMapLock        sync.Mutex
-	ModifyFinancingInvoiceMapLock sync.Mutex
+	InvoiceMapLock                   sync.Mutex
+	HistoricalOrderMapLock           sync.Mutex
+	HistoricalReceivableMapLock      sync.Mutex
+	HistoricalUsedMapLock            sync.Mutex
+	HistoricalSettleMapLock          sync.Mutex
+	PoolPlanMapLock                  sync.Mutex
+	PoolUsedMapLock                  sync.Mutex
+	CollectionAccountMapLock         sync.Mutex
+	FinancingApplicationIssueMapLock sync.Mutex
+	ModifyInvoiceMapLock             sync.Mutex
+	ModifyFinancingMapLock           sync.Mutex
+	ModifyInvoiceWhenMFAMapLock      sync.Mutex
 )
 
 type ResponseMessage struct {
@@ -190,10 +190,10 @@ func (c *Controller) IssueSupplierFinancingApplication(UUID, id, params, data, k
 		return err
 	}
 	flag := false
-	FinancingApplicationMap.Range(func(key, value interface{}) bool {
+	FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
 		uuid := key.(string)
 		if uuid == UUID {
-			FinancingApplicationMapLock.Lock()
+			FinancingApplicationIssueMapLock.Lock()
 			flag = true
 			rsp := NewResponseMessage()
 			mapping := value.(map[string]*ResponseMessage)
@@ -201,20 +201,20 @@ func (c *Controller) IssueSupplierFinancingApplication(UUID, id, params, data, k
 			if _, ok := mapping[transaction.Hash().String()]; !ok {
 				mapping[transaction.Hash().String()] = rsp
 			}
-			FinancingApplicationMapLock.Unlock()
-			FinancingApplicationMap.LoadOrStore(uuid, mapping)
+			FinancingApplicationIssueMapLock.Unlock()
+			FinancingApplicationIssueMap.LoadOrStore(uuid, mapping)
 			return false
 		}
 		return true
 
 	})
 	if !flag {
-		FinancingApplicationMapLock.Lock()
+		FinancingApplicationIssueMapLock.Lock()
 		rsp := NewResponseMessage()
 		mapping := make(map[string]*ResponseMessage)
 		mapping[transaction.Hash().String()] = rsp
-		FinancingApplicationMapLock.Unlock()
-		FinancingApplicationMap.LoadOrStore(UUID, mapping)
+		FinancingApplicationIssueMapLock.Unlock()
+		FinancingApplicationIssueMap.LoadOrStore(UUID, mapping)
 	}
 	return nil
 }

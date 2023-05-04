@@ -15,6 +15,11 @@ import (
 
 var logs = logloader.NewLog()
 
+const (
+	Issue  = "issue"
+	Modify = "modify"
+)
+
 type FrontEnd struct {
 	InvoicePool                             map[string]*InvoiceInformation
 	TransactionHistoryPool                  map[string]*TransactionHistory
@@ -38,10 +43,11 @@ type FrontEnd struct {
 	IssueEnterPoolPlanOKChan            chan interface{}
 	IssueEnterPoolUsedOKChan            chan interface{}
 	ModifyAccountOKChan                 chan interface{}
-	FinancingIntentionOKChan            chan interface{}
-	ModifyFinancingOKChan               chan interface{}
-	ModifyInvoiceOKChan                 chan interface{}
-	ModifyInvoiceWhenFinancingOKChan    chan interface{}
+	//提交融资意向时使用
+	FinancingIntentionIssueOKChan    chan interface{}
+	ModifyFinancingOKChan            chan interface{}
+	ModifyInvoiceOKChan              chan interface{}
+	ModifyInvoiceWhenFinancingOKChan chan interface{}
 }
 type PackedResponse struct {
 	Success map[string]uptoChain.ResponseMessage
@@ -70,11 +76,13 @@ func NewFrontEnd() *FrontEnd {
 		IssueEnterPoolPlanOKChan:                make(chan interface{}),
 		IssueEnterPoolUsedOKChan:                make(chan interface{}),
 		ModifyAccountOKChan:                     make(chan interface{}),
-		FinancingIntentionOKChan:                make(chan interface{}),
+		FinancingIntentionIssueOKChan:           make(chan interface{}),
 		ModifyFinancingOKChan:                   make(chan interface{}),
 		ModifyInvoiceOKChan:                     make(chan interface{}),
 	}
 }
+
+// 推送发票信息接口
 func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request *http.Request) {
 	pubKey, err := ioutil.ReadFile("./connApi/confs/public.pem")
 	if err != nil {
@@ -390,6 +398,7 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 		}
 		if res {
 			if checkTimeStamp(formatTimeStr) {
+				//处理发布情况
 				var message *SelectedInfosAndFinancingApplication
 				if json.NewDecoder(request.Body).Decode(&message) != nil {
 					jsonData := wrongJsonType()
@@ -409,13 +418,13 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 					f.FinancingIntentionWithSelectedInfosMutex.Lock()
 					f.FinancingIntentionWithSelectedInfosPool[id.String()] = message
 					f.FinancingIntentionWithSelectedInfosMutex.Unlock()
-					<-f.FinancingIntentionOKChan
+					<-f.FinancingIntentionIssueOKChan
 					<-f.ModifyInvoiceOKChan
 					jsonData := NewPackedResponse()
-					uptoChain.FinancingApplicationMap.Range(func(key, value interface{}) bool {
+					uptoChain.FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
-								uptoChain.FinancingApplicationMapLock.Lock()
+								uptoChain.FinancingApplicationIssueMapLock.Lock()
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
 									message.AddMessage("FinancingApplication:")
@@ -425,8 +434,8 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 										jsonData.Fail[txHash] = *message
 									}
 								}
-								uptoChain.FinancingApplicationMapLock.Unlock()
-								uptoChain.FinancingApplicationMap.Delete(uuid)
+								uptoChain.FinancingApplicationIssueMapLock.Unlock()
+								uptoChain.FinancingApplicationIssueMap.Delete(uuid)
 							}
 						}
 						return true
@@ -529,10 +538,10 @@ func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.R
 						}
 						return true
 					})
-					uptoChain.ModifyFinancingInvoiceMap.Range(func(key, value interface{}) bool {
+					uptoChain.ModifyInvoiceWhenMFAMap.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
-								uptoChain.ModifyFinancingInvoiceMapLock.Lock()
+								uptoChain.ModifyInvoiceWhenMFAMapLock.Lock()
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
 									message.AddMessage("ModifyFinancingAndInvoice:")
@@ -542,8 +551,8 @@ func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.R
 										jsonData.Fail[txHash] = *message
 									}
 								}
-								uptoChain.ModifyFinancingInvoiceMapLock.Unlock()
-								uptoChain.ModifyFinancingInvoiceMap.Delete(uuid)
+								uptoChain.ModifyInvoiceWhenMFAMapLock.Unlock()
+								uptoChain.ModifyInvoiceWhenMFAMap.Delete(uuid)
 							}
 						}
 						return true

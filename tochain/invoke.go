@@ -59,15 +59,15 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
 		packedMessage.message = message
-		FinancingApplicationMap.Range(func(key, value interface{}) bool {
+		FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
-			FinancingApplicationMapLock.Lock()
+			FinancingApplicationIssueMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
-			FinancingApplicationMapLock.Unlock()
-			FinancingApplicationMap.LoadOrStore(uuid, mapping)
+			FinancingApplicationIssueMapLock.Unlock()
+			FinancingApplicationIssueMap.LoadOrStore(uuid, mapping)
 			return true
 		})
 	} else {
@@ -76,15 +76,15 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = true
 		packedMessage.message = message
-		FinancingApplicationMap.Range(func(key, value interface{}) bool {
+		FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
-			FinancingApplicationMapLock.Lock()
+			FinancingApplicationIssueMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
-			FinancingApplicationMapLock.Unlock()
-			FinancingApplicationMap.LoadOrStore(uuid, mapping)
+			FinancingApplicationIssueMapLock.Unlock()
+			FinancingApplicationIssueMap.LoadOrStore(uuid, mapping)
 			return true
 		})
 	}

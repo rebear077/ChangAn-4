@@ -73,6 +73,7 @@ func (p *Promoter) Start() {
 	}
 }
 
+// 处理推送的发票信息
 func (p *Promoter) InvoiceInfoHandler() {
 	if len(p.DataApi.InvoicePool) != 0 {
 		logs.Infoln("开始同步发票信息")
@@ -145,6 +146,7 @@ func (p *Promoter) InvoiceInfoHandler() {
 	}
 }
 
+// 处理历史交易信息
 func (p *Promoter) HistoricalInfoHandler() {
 	if len(p.DataApi.TransactionHistoryPool) != 0 {
 		logs.Infoln("开始历史交易信息")
@@ -366,6 +368,8 @@ func (p *Promoter) HistoricalInfoHandler() {
 		logs.Println("退出")
 	}
 }
+
+// 处理入池数据信息
 func (p *Promoter) PoolInfoHandler() {
 	if len(p.DataApi.EnterpoolDataPool) != 0 {
 		logrus.Infoln("开始入池数据信息")
@@ -499,7 +503,9 @@ func (p *Promoter) PoolInfoHandler() {
 		logs.Println("退出")
 	}
 }
-func (p *Promoter) ModifyInvoiceInfoHandler(invoices map[string]map[string]map[int]map[string]string) {
+
+// 修改发票信息的owner字段
+func (p *Promoter) modifyInvoiceInfoHandler(invoices map[string]map[string]map[int]map[string]string) {
 	var wg sync.WaitGroup
 	for uuid, invoicewithID := range invoices {
 		for financingID, infos := range invoicewithID {
@@ -560,6 +566,8 @@ func (p *Promoter) ModifyInvoiceInfoHandler(invoices map[string]map[string]map[i
 		}
 	}
 }
+
+// 发布融资意向请求
 func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 	if len(p.DataApi.FinancingIntentionWithSelectedInfosPool) != 0 {
 		logs.Infoln("开始同步融资意向请求信息")
@@ -573,7 +581,7 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Unlock()
 		financingInfo, Invoices := server.HandleFinancingIntentionAndSelectedInfos(finintensWithSelectedInfos)
 		fmt.Println(Invoices)
-		go p.ModifyInvoiceInfoHandler(Invoices)
+		go p.modifyInvoiceInfoHandler(Invoices)
 		for UUID := range financingInfo {
 			for header, info := range financingInfo[UUID] {
 				wg.Add(1)
@@ -597,8 +605,8 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 		}
 		for {
 			counter := 0
-			uptoChain.FinancingApplicationMap.Range(func(key, value interface{}) bool {
-				uptoChain.FinancingApplicationMapLock.Lock()
+			uptoChain.FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
+				uptoChain.FinancingApplicationIssueMapLock.Lock()
 				mapping := value.(map[string]*uptoChain.ResponseMessage)
 				counter += len(mapping)
 				for _, message := range mapping {
@@ -607,14 +615,14 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 						break
 					}
 				}
-				uptoChain.FinancingApplicationMapLock.Unlock()
+				uptoChain.FinancingApplicationIssueMapLock.Unlock()
 				return true
 			})
 			if counter == len(messages) {
-				p.DataApi.FinancingIntentionOKChan <- struct{}{}
+				p.DataApi.FinancingIntentionIssueOKChan <- struct{}{}
 				for {
 					flag := 0
-					uptoChain.FinancingApplicationMap.Range(func(key, value interface{}) bool {
+					uptoChain.FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
 						if key != nil {
 							flag++
 							return false
@@ -631,6 +639,7 @@ func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 	}
 }
 
+// 处理回款账户信息
 func (p *Promoter) PushPaymentAccountsInfoHandler() {
 	if len(p.DataApi.CollectionAccountPool) != 0 {
 		logs.Infoln("开始同步回款信息")
@@ -652,7 +661,7 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 					tempheader := header
 					tempinfo := info
 					go func(UUID, tempheader, tempinfo string) {
-						p.packInfo(UUID, tempheader, tempinfo, "fast", "payment")
+						p.packAccountsInfo(UUID, tempheader, tempinfo, "fast", "payment")
 						wg.Done()
 					}(UUID, tempheader, tempinfo)
 				}
@@ -706,22 +715,8 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 	}
 }
 
-func (p *Promoter) packInfo(uuid, header, info, poolType, method string) {
-	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
-	if err != nil {
-		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-	}
-	temp := packedMessage{}
-	temp.cipher = cipher
-	temp.encryptionKey = encryptionKey
-	temp.signed = signed
-	temp.header = header
-	temp.uuid = uuid
-	p.encryptedPool.Insert(temp, method, poolType)
-}
-
-func (p *Promoter) ModifyFinancingInvoiceInfoHandler(invoices map[string]map[string]map[int]map[string]string) {
+// 处理融资意向申请时所需要的发票信息处理
+func (p *Promoter) modifyFinancingInvoiceInfoHandler(invoices map[string]map[string]map[int]map[string]string) {
 	var wg sync.WaitGroup
 	for uuid, invoicewithID := range invoices {
 		for financingID, infos := range invoicewithID {
@@ -750,8 +745,8 @@ func (p *Promoter) ModifyFinancingInvoiceInfoHandler(invoices map[string]map[str
 	}
 	for {
 		counter := 0
-		uptoChain.ModifyFinancingInvoiceMap.Range(func(key, value interface{}) bool {
-			uptoChain.ModifyFinancingInvoiceMapLock.Lock()
+		uptoChain.ModifyInvoiceWhenMFAMap.Range(func(key, value interface{}) bool {
+			uptoChain.ModifyInvoiceWhenMFAMapLock.Lock()
 			mapping := value.(map[string]*uptoChain.ResponseMessage)
 			counter += len(mapping)
 			for _, message := range mapping {
@@ -760,14 +755,14 @@ func (p *Promoter) ModifyFinancingInvoiceInfoHandler(invoices map[string]map[str
 					break
 				}
 			}
-			uptoChain.ModifyFinancingInvoiceMapLock.Unlock()
+			uptoChain.ModifyInvoiceWhenMFAMapLock.Unlock()
 			return true
 		})
 		if counter == len(messages) {
 			p.DataApi.ModifyInvoiceWhenFinancingOKChan <- struct{}{}
 			for {
 				flag := 0
-				uptoChain.ModifyFinancingInvoiceMap.Range(func(key, value interface{}) bool {
+				uptoChain.ModifyInvoiceWhenMFAMap.Range(func(key, value interface{}) bool {
 					if key != nil {
 						flag++
 						return false
@@ -782,9 +777,11 @@ func (p *Promoter) ModifyFinancingInvoiceInfoHandler(invoices map[string]map[str
 		}
 	}
 }
+
+// 处理融资意向申请的修改
 func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandler() {
 	if len(p.DataApi.ModifyFinancingWithSelectedInfosPool) != 0 {
-		logs.Infoln("开始同步融资意向请求信息")
+		logs.Infoln("开始修改融资意向请求信息")
 		var wg sync.WaitGroup
 		finintensWithSelectedInfos := make(map[string]*receive.SelectedInfosAndFinancingApplication, 0)
 		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Lock()
@@ -795,7 +792,7 @@ func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandle
 		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Unlock()
 		financingInfo, Invoices := server.HandleFinancingIntentionAndSelectedInfos(finintensWithSelectedInfos)
 		fmt.Println(Invoices)
-		go p.ModifyFinancingInvoiceInfoHandler(Invoices)
+		go p.modifyFinancingInvoiceInfoHandler(Invoices)
 		for UUID := range financingInfo {
 			for header, info := range financingInfo[UUID] {
 				wg.Add(1)
@@ -872,6 +869,8 @@ func (p *Promoter) packInvoiceInfo(UUID string, header string, info string, pool
 	temp.header = header
 	p.encryptedPool.InsertInvoice(temp, method, poolType)
 }
+
+// 针对修改发票信息的packInfo
 func (p *Promoter) packModifyInvoiceInfo(finangcingID, UUID string, header string, info string, poolType string, method string) {
 
 	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
@@ -892,6 +891,8 @@ func (p *Promoter) packModifyInvoiceInfo(finangcingID, UUID string, header strin
 	temp.financingID = finangcingID
 	p.encryptedPool.InsertModifyInvoice(temp, method, poolType)
 }
+
+// 针对融资意向的packInfo
 func (p *Promoter) packFinancingInfo(UUID, header, info, poolType, method string) {
 	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
 	if err != nil {
@@ -967,6 +968,24 @@ func (p *Promoter) packPoolInfos(UUID, header string, infos []string, poolType, 
 	}
 	wg.Wait()
 }
+
+// 针对回款账户信息的packInfo
+func (p *Promoter) packAccountsInfo(uuid, header, info, poolType, method string) {
+	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
+	if err != nil {
+		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
+		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
+	}
+	temp := packedMessage{}
+	temp.cipher = cipher
+	temp.encryptionKey = encryptionKey
+	temp.signed = signed
+	temp.header = header
+	temp.uuid = uuid
+	p.encryptedPool.Insert(temp, method, poolType)
+}
+
+// 写入文件
 func WriteToFile(info string) {
 	filePath := "./configs/errorInfo.txt"
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0666)
