@@ -206,6 +206,16 @@ func (s *Server) IssueSupplierFinancingApplication(UUID, id, params string, ciph
 	}
 }
 
+// 更新融资意向请求
+func (s *Server) UpdateSupplierFinancingApplication(UUID, id, params string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.UpdateSupplierFinancingApplication(UUID, id, params, string(cipher), string(encryptionKey), string(signed))
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
 // 回款信息
 func (s *Server) UpdatePushPaymentAccount(UUID, id string, cipher, encryptionKey, signed []byte) error {
 	err := s.ctr.UpdatePushPaymentAccounts(UUID, id, string(cipher), string(encryptionKey), string(signed))

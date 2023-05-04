@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-var allowed = [10]string{"invoice", "payment", "application", "historicalUsed", "historicalOrder", "historicalReceivable", "historicalSettle", "poolPlan", "poolUsed", "modifyinvoice"}
+var allowed = [12]string{"Modifyapplication", "invoice", "payment", "application", "historicalUsed", "historicalOrder", "historicalReceivable", "historicalSettle", "poolPlan", "poolUsed", "modifyinvoice", "modifyFinancinginvoice"}
 
 type Pools struct {
 	slowPool *pendingPool

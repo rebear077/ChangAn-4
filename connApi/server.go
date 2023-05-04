@@ -21,12 +21,14 @@ type FrontEnd struct {
 	EnterpoolDataPool                       map[string]*EnterpoolData
 	FinancingIntentionWithSelectedInfosPool map[string]*SelectedInfosAndFinancingApplication
 	CollectionAccountPool                   map[string]*CollectionAccount
+	ModifyFinancingWithSelectedInfosPool    map[string]*SelectedInfosAndFinancingApplication
 
-	IssueInvoicemutex                        sync.RWMutex
-	TransactionHistorymutex                  sync.RWMutex
-	EnterpoolDatamutex                       sync.RWMutex
-	FinancingIntentionWithSelectedInfosMutex sync.RWMutex
-	CollectionAccountmutex                   sync.RWMutex
+	IssueInvoicemutex                         sync.RWMutex
+	TransactionHistorymutex                   sync.RWMutex
+	EnterpoolDatamutex                        sync.RWMutex
+	FinancingIntentionWithSelectedInfosMutex  sync.RWMutex
+	ModifyFinancingWithSelectedInfosPoolMutex sync.RWMutex
+	CollectionAccountmutex                    sync.RWMutex
 
 	IssueInvoiceOKChan                  chan interface{}
 	IssueHistoryUsedInfoOKChan          chan interface{}
@@ -37,7 +39,9 @@ type FrontEnd struct {
 	IssueEnterPoolUsedOKChan            chan interface{}
 	ModifyAccountOKChan                 chan interface{}
 	FinancingIntentionOKChan            chan interface{}
+	ModifyFinancingOKChan               chan interface{}
 	ModifyInvoiceOKChan                 chan interface{}
+	ModifyInvoiceWhenFinancingOKChan    chan interface{}
 }
 type PackedResponse struct {
 	Success map[string]uptoChain.ResponseMessage
@@ -57,6 +61,7 @@ func NewFrontEnd() *FrontEnd {
 		EnterpoolDataPool:                       make(map[string]*EnterpoolData, 0),
 		FinancingIntentionWithSelectedInfosPool: make(map[string]*SelectedInfosAndFinancingApplication, 0),
 		CollectionAccountPool:                   make(map[string]*CollectionAccount, 0),
+		ModifyFinancingWithSelectedInfosPool:    make(map[string]*SelectedInfosAndFinancingApplication, 0),
 		IssueInvoiceOKChan:                      make(chan interface{}),
 		IssueHistoryUsedInfoOKChan:              make(chan interface{}),
 		IssueHistoricalOrderInfoOKChan:          make(chan interface{}),
@@ -66,6 +71,7 @@ func NewFrontEnd() *FrontEnd {
 		IssueEnterPoolUsedOKChan:                make(chan interface{}),
 		ModifyAccountOKChan:                     make(chan interface{}),
 		FinancingIntentionOKChan:                make(chan interface{}),
+		ModifyFinancingOKChan:                   make(chan interface{}),
 		ModifyInvoiceOKChan:                     make(chan interface{}),
 	}
 }
@@ -446,6 +452,105 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 					})
 					fmt.Fprint(writer, jsonData)
 				}
+
+			} else {
+				jsonData := timeExceeded()
+				fmt.Fprint(writer, jsonData)
+			}
+		} else {
+			jsonData := verySignatureFailed()
+			fmt.Fprint(writer, jsonData)
+		}
+	} else {
+		jsonData := wrongVerifyMethod()
+		fmt.Fprint(writer, jsonData)
+	}
+}
+
+// 修改融资意向申请接口，与所选的发票数据一同接收
+func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.ResponseWriter, request *http.Request) {
+	pubKey, err := ioutil.ReadFile("./connApi/confs/public.pem")
+	if err != nil {
+		logs.Info(err)
+	}
+	request.Header.Set("Connection", "close")
+	if request.Header.Get("verify") == "SHA256withRSAVerify" {
+		cipertext := request.Header.Get("apisign")
+		appid := request.Header.Get("appid")
+		//时间戳处理
+		timestamp := request.Header.Get("timestamp")
+		formatTimeStr := convertimeStamp(timestamp)
+		sign := request.Header.Get("sign")
+		sourcedata := appid + "&" + timestamp + "&" + sign
+		res, err := rsaVerySignWithSha256([]byte(sourcedata), cipertext, pubKey)
+		if err != nil {
+			logs.Info(err)
+		}
+		if res {
+			if checkTimeStamp(formatTimeStr) {
+				var message *SelectedInfosAndFinancingApplication
+				if json.NewDecoder(request.Body).Decode(&message) != nil {
+					jsonData := wrongJsonType()
+					fmt.Fprint(writer, jsonData)
+				} else if !VerifyInvoice(*message) {
+					jsonData := wrongVerifyInvoice()
+					fmt.Fprint(writer, jsonData)
+				} else {
+					id, err := uuid.NewUUID()
+					if err != nil {
+						logrus.Fatalf("newChannelMessage error: %v", err)
+					}
+					message.UUID = id.String()
+					for index := range message.Invoice {
+						message.Invoice[index].FinancingID = message.FinancingApplication.Financeid
+					}
+					f.ModifyFinancingWithSelectedInfosPoolMutex.Lock()
+					f.ModifyFinancingWithSelectedInfosPool[id.String()] = message
+					f.ModifyFinancingWithSelectedInfosPoolMutex.Unlock()
+					<-f.ModifyFinancingOKChan
+					<-f.ModifyInvoiceWhenFinancingOKChan
+					jsonData := NewPackedResponse()
+					uptoChain.ModifyFinancingMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								uptoChain.ModifyFinancingMapLock.Lock()
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("ModifyFinancingApplication:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = *message
+									} else {
+										jsonData.Fail[txHash] = *message
+									}
+								}
+								uptoChain.ModifyFinancingMapLock.Unlock()
+								uptoChain.ModifyFinancingMap.Delete(uuid)
+							}
+						}
+						return true
+					})
+					uptoChain.ModifyFinancingInvoiceMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								uptoChain.ModifyFinancingInvoiceMapLock.Lock()
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									message.AddMessage("ModifyFinancingAndInvoice:")
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = *message
+									} else {
+										jsonData.Fail[txHash] = *message
+									}
+								}
+								uptoChain.ModifyFinancingInvoiceMapLock.Unlock()
+								uptoChain.ModifyFinancingInvoiceMap.Delete(uuid)
+							}
+						}
+						return true
+					})
+					fmt.Fprint(writer, jsonData)
+				}
+
 			} else {
 				jsonData := timeExceeded()
 				fmt.Fprint(writer, jsonData)

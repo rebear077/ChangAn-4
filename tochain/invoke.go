@@ -90,6 +90,65 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 	}
 }
 
+// 更新融资意向
+func invokeUpdateSupplierFinancingApplicationHandler(receipt *types.Receipt, err error) {
+
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
+	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updateSupplierFinancingApplication", receipt)
+	if err != nil {
+		log.Printf("error when transfer string to int: %v\n", err)
+	}
+	if setedLines == nil || setedLines.Int64() != 1 {
+
+		ret, err := parsed.UnpackInput("updateSupplierFinancingApplication", common.FromHex(receipt.Input)[4:])
+		if err != nil {
+			fmt.Println(err)
+		}
+		var message string
+		parseRet, ok := ret.([]interface{})
+		if !ok {
+			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
+		}
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		ModifyFinancingMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			ModifyFinancingMapLock.Lock()
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			ModifyFinancingMapLock.Unlock()
+			ModifyFinancingMap.LoadOrStore(uuid, mapping)
+			return true
+		})
+	} else {
+
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		ModifyFinancingMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			ModifyFinancingMapLock.Lock()
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			ModifyFinancingMapLock.Unlock()
+			ModifyFinancingMap.LoadOrStore(uuid, mapping)
+			return true
+		})
+	}
+}
+
 // 发布发票信息回调函数
 func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err error) {
 	if err != nil {

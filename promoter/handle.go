@@ -66,6 +66,7 @@ func (p *Promoter) Start() {
 			p.HistoricalInfoHandler()
 			p.PushPaymentAccountsInfoHandler()
 			p.PoolInfoHandler()
+			p.ModifySupplierFinancingApplicationInfoWithSelectedInfosHandler()
 		} else {
 			time.Sleep(5 * time.Second)
 		}
@@ -718,6 +719,138 @@ func (p *Promoter) packInfo(uuid, header, info, poolType, method string) {
 	temp.header = header
 	temp.uuid = uuid
 	p.encryptedPool.Insert(temp, method, poolType)
+}
+
+func (p *Promoter) ModifyFinancingInvoiceInfoHandler(invoices map[string]map[string]map[int]map[string]string) {
+	var wg sync.WaitGroup
+	for uuid, invoicewithID := range invoices {
+		for financingID, infos := range invoicewithID {
+			for index := range infos {
+				for id, info := range infos[index] {
+					wg.Add(1)
+					tempheader := id
+					tempinfo := info
+					UUID := uuid
+					go func(financingID, UUID, tempheader, tempinfo string) {
+						p.packModifyInvoiceInfo(financingID, UUID, tempheader, tempinfo, "fast", "modifyFinancinginvoice")
+						wg.Done()
+					}(financingID, UUID, tempheader, tempinfo)
+				}
+			}
+		}
+	}
+	wg.Wait()
+	messages := p.encryptedPool.QueryMessages("modifyFinancinginvoice", "fast")
+	for _, message := range messages {
+		temp, _ := message.(packedModifyInvoiceMessage)
+		err := p.server.VerifyAndUpdateInvoiceInformation(temp.uuid, temp.header, temp.sign, temp.financingID)
+		if err != nil {
+			logs.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
+		}
+	}
+	for {
+		counter := 0
+		uptoChain.ModifyFinancingInvoiceMap.Range(func(key, value interface{}) bool {
+			uptoChain.ModifyFinancingInvoiceMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.ModifyFinancingInvoiceMapLock.Unlock()
+			return true
+		})
+		if counter == len(messages) {
+			p.DataApi.ModifyInvoiceWhenFinancingOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.ModifyFinancingInvoiceMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+}
+func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandler() {
+	if len(p.DataApi.ModifyFinancingWithSelectedInfosPool) != 0 {
+		logs.Infoln("开始同步融资意向请求信息")
+		var wg sync.WaitGroup
+		finintensWithSelectedInfos := make(map[string]*receive.SelectedInfosAndFinancingApplication, 0)
+		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Lock()
+		for uuid := range p.DataApi.ModifyFinancingWithSelectedInfosPool {
+			finintensWithSelectedInfos[uuid] = p.DataApi.ModifyFinancingWithSelectedInfosPool[uuid]
+			delete(p.DataApi.ModifyFinancingWithSelectedInfosPool, uuid)
+		}
+		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Unlock()
+		financingInfo, Invoices := server.HandleFinancingIntentionAndSelectedInfos(finintensWithSelectedInfos)
+		fmt.Println(Invoices)
+		go p.ModifyFinancingInvoiceInfoHandler(Invoices)
+		for UUID := range financingInfo {
+			for header, info := range financingInfo[UUID] {
+				wg.Add(1)
+				tempheader := header
+				tempinfo := info
+				go func(UUID, tempheader, tempinfo string) {
+					p.packFinancingInfo(UUID, tempheader, tempinfo, "fast", "Modifyapplication")
+					wg.Done()
+				}(UUID, tempheader, tempinfo)
+			}
+		}
+
+		wg.Wait()
+		messages := p.encryptedPool.QueryMessages("Modifyapplication", "fast")
+		for _, message := range messages {
+			temp, _ := message.(packedFinancingMessage)
+			err := p.server.UpdateSupplierFinancingApplication(temp.uuid, temp.header, temp.financingid+","+temp.state, temp.cipher, temp.encryptionKey, temp.signed)
+			if err != nil {
+				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
+			}
+		}
+		for {
+			counter := 0
+			uptoChain.ModifyFinancingMap.Range(func(key, value interface{}) bool {
+				uptoChain.ModifyFinancingMapLock.Lock()
+				mapping := value.(map[string]*uptoChain.ResponseMessage)
+				counter += len(mapping)
+				for _, message := range mapping {
+					if message.GetMessage() == "" {
+						counter = 0
+						break
+					}
+				}
+				uptoChain.ModifyFinancingMapLock.Unlock()
+				return true
+			})
+			if counter == len(messages) {
+				p.DataApi.ModifyFinancingOKChan <- struct{}{}
+				for {
+					flag := 0
+					uptoChain.ModifyFinancingMap.Range(func(key, value interface{}) bool {
+						if key != nil {
+							flag++
+							return false
+						}
+						return true
+					})
+					if flag == 0 {
+						break
+					}
+				}
+				break
+			}
+		}
+	}
 }
 
 // 针对发票信息的packInfo

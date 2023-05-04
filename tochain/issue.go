@@ -21,27 +21,31 @@ import (
 
 var Logs = logloader.NewLog()
 var (
-	InvoiceMap              sync.Map
-	HistoricalOrderMap      sync.Map
-	HistoricalReceivableMap sync.Map
-	HistoricalUsedMap       sync.Map
-	HistoricalSettleMap     sync.Map
-	PoolPlanMap             sync.Map
-	PoolUsedMap             sync.Map
-	CollectionAccountMap    sync.Map
-	FinancingApplicationMap sync.Map
-	ModifyInvoiceMap        sync.Map
+	InvoiceMap                sync.Map
+	HistoricalOrderMap        sync.Map
+	HistoricalReceivableMap   sync.Map
+	HistoricalUsedMap         sync.Map
+	HistoricalSettleMap       sync.Map
+	PoolPlanMap               sync.Map
+	PoolUsedMap               sync.Map
+	CollectionAccountMap      sync.Map
+	FinancingApplicationMap   sync.Map
+	ModifyInvoiceMap          sync.Map
+	ModifyFinancingMap        sync.Map
+	ModifyFinancingInvoiceMap sync.Map
 
-	InvoiceMapLock              sync.Mutex
-	HistoricalOrderMapLock      sync.Mutex
-	HistoricalReceivableMapLock sync.Mutex
-	HistoricalUsedMapLock       sync.Mutex
-	HistoricalSettleMapLock     sync.Mutex
-	PoolPlanMapLock             sync.Mutex
-	PoolUsedMapLock             sync.Mutex
-	CollectionAccountMapLock    sync.Mutex
-	FinancingApplicationMapLock sync.Mutex
-	ModifyInvoiceMapLock        sync.Mutex
+	InvoiceMapLock                sync.Mutex
+	HistoricalOrderMapLock        sync.Mutex
+	HistoricalReceivableMapLock   sync.Mutex
+	HistoricalUsedMapLock         sync.Mutex
+	HistoricalSettleMapLock       sync.Mutex
+	PoolPlanMapLock               sync.Mutex
+	PoolUsedMapLock               sync.Mutex
+	CollectionAccountMapLock      sync.Mutex
+	FinancingApplicationMapLock   sync.Mutex
+	ModifyInvoiceMapLock          sync.Mutex
+	ModifyFinancingMapLock        sync.Mutex
+	ModifyFinancingInvoiceMapLock sync.Mutex
 )
 
 type ResponseMessage struct {
@@ -211,6 +215,43 @@ func (c *Controller) IssueSupplierFinancingApplication(UUID, id, params, data, k
 		mapping[transaction.Hash().String()] = rsp
 		FinancingApplicationMapLock.Unlock()
 		FinancingApplicationMap.LoadOrStore(UUID, mapping)
+	}
+	return nil
+}
+
+// 更新融资意向请求
+// 入口参数：id：供应商编号；financingid:融资意向申请id；data：加密后的数据；key：加密后的key值；hash：哈希值
+func (c *Controller) UpdateSupplierFinancingApplication(UUID, id, params, data, key, hash string) error {
+	transaction, err := c.session.AsyncUpdateSupplierFinancingApplication(invokeUpdateSupplierFinancingApplicationHandler, id, params, data, key, hash)
+	if err != nil {
+		return err
+	}
+	flag := false
+	ModifyFinancingMap.Range(func(key, value interface{}) bool {
+		uuid := key.(string)
+		if uuid == UUID {
+			ModifyFinancingMapLock.Lock()
+			flag = true
+			rsp := NewResponseMessage()
+			mapping := value.(map[string]*ResponseMessage)
+			// // fmt.Println(mapping)
+			if _, ok := mapping[transaction.Hash().String()]; !ok {
+				mapping[transaction.Hash().String()] = rsp
+			}
+			ModifyFinancingMapLock.Unlock()
+			ModifyFinancingMap.LoadOrStore(uuid, mapping)
+			return false
+		}
+		return true
+
+	})
+	if !flag {
+		ModifyFinancingMapLock.Lock()
+		rsp := NewResponseMessage()
+		mapping := make(map[string]*ResponseMessage)
+		mapping[transaction.Hash().String()] = rsp
+		ModifyFinancingMapLock.Unlock()
+		ModifyFinancingMap.LoadOrStore(UUID, mapping)
 	}
 	return nil
 }
