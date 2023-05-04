@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-
 	promoter := promote.NewPromoter()
 	go func() {
 		http.HandleFunc("/asl/universal/push-invoice-info", promoter.DataApi.HandleInvoiceInformation)
@@ -16,6 +15,7 @@ func main() {
 		http.HandleFunc("/asl/universal/caqc/push-inpool", promoter.DataApi.HandleEnterpoolData)
 		http.HandleFunc("/asl/universal/commmit-intention", promoter.DataApi.HandleFinancingIntentionWithSelectedInfos)
 		http.HandleFunc("/asl/universal/back-account-lock", promoter.DataApi.HandleCollectionAccount)
+		http.HandleFunc("/asl/universal/modify-financing-intension", promoter.DataApi.HandleModifyFinancingIntentionWithSelectedInfos)
 		// http.HandleFunc("/asl/universal/selected-to-application", promoter.DataApi.HandleCollectionAccount)
 		err := http.ListenAndServeTLS(":8443", "connApi/confs/server.pem", "connApi/confs/server.key", nil)
 		if err != nil {
