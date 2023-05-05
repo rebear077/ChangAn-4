@@ -20,41 +20,36 @@ contract SupplierFinancingApplication is Ownable {
         mapStorage = new MapStorage();
     }
     
-    event InsertSupplierFinancingApplication(string id, string financingid, string hash);
-    event UpdateSupplierFinancingApplication(string id, string financingid, string hash);
+    event InsertSupplierFinancingApplication(string id, string hash);
+    event UpdateSupplierFinancingApplication(string id, string hash);
     event FinancingApplicationHashNotFound(string customerid, string hash, string tips);
     
-    function insert(string memory _id, string memory _params, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    function insert(string memory _id, string memory _state, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
-        string[] memory ss = _params.split(",");
-        string memory _financingID = ss[0];
-        string memory _state = ss[1];
         require(_isFinanceidExist(table, _id, _hash), "current financingid or Hash has already exist");
-        entry.set("financingid",_financingID);
+        entry.set("financingid",_id);
         entry.set("data",_data);
         entry.set("key",_key);
         entry.set("hash",_hash);
         entry.set("state",_state);
         int256 count = table.insert(_id, entry);
-        emit InsertSupplierFinancingApplication(_id, _financingID, _hash);
+        emit InsertSupplierFinancingApplication(_id, _hash);
         return count;
     }
-    function update(string memory _id, string memory _params, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    function update(string memory _id, string memory _state, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
-         string[] memory ss = _params.split(",");
-        string memory _financingID = ss[0];
-        string memory _state = ss[1];
         require(_isProcessIdExist(table, _id), "SupplierFinancingApplication select: current financingId not exist");
-        entry.set("financingid",_financingID);
+        entry.set("financingid",_id);
         entry.set("data",_data);
         entry.set("key",_key);
         entry.set("hash",_hash);
         entry.set("state", _state);
-        int256 count = table.insert(_id, entry);
+         Condition condition = table.newCondition();
+        int256 count = table.update(_id, entry,condition);
         if (count == 1){
-            emit UpdateSupplierFinancingApplication(_id, _financingID, _hash);
+            emit UpdateSupplierFinancingApplication(_id, _hash);
         } else {
             emit FinancingApplicationHashNotFound(_id, _hash, "未找到记录");
         }
