@@ -16,17 +16,18 @@ contract PushPaymentAccounts is Ownable {
     // 字段含义：
     constructor() public {
         tf = TableFactory(0x1001);
-        tf.createTable(TABLE_NAME, "id","data,key,hash");
+        tf.createTable(TABLE_NAME, "id","financingid,data,key,hash");
         mapStorage = new MapStorage();
     }
     
     event UpdatePaymentAccounts(string customerid, string hash);
     event PaymentAccountsHashNotFound(string customerid, string hash, string tips);
     
-    function update(string memory _id, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
+    function update(string memory _id, string memory _financingid,string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
-        require(_isProcessIdExist(table, _id), "PushPaymentAccounts select: current processId not exist");
+        require(_isIdExist(table, _id,_financingid), "PushPaymentAccounts select: current customerid not exist");
+        entry.set("financingid",_financingid);
         entry.set("data", _data);
         entry.set("key",_key);
         entry.set("hash",_hash);
@@ -38,7 +39,13 @@ contract PushPaymentAccounts is Ownable {
         }
         return count;
     }
-      function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {
+      function _isIdExist(Table _table, string memory _id,string memory _financingid) internal view returns(bool) {
+        Condition condition = _table.newCondition();
+        condition.EQ("financingid",_financingid);
+        condition.EQ("id",_id);
+        return _table.select(_id, condition).size() != int(0);
+    }
+    function _isProcessIdExist(Table _table, string memory _id) internal view returns(bool) {
         Condition condition = _table.newCondition();
         return _table.select(_id, condition).size() != int(0);
     }

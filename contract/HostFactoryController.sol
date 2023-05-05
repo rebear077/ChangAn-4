@@ -140,8 +140,8 @@ contract HostFactoryController is Ownable{
     }
 //********************************************************************************************************
 //查询回款信息
-    function updatePushPaymentAccounts(string _id, string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = pushPaymentAccounts.update(_id, _data,_key,_hash);
+    function updatePushPaymentAccounts(string _id, string _financingid,string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = pushPaymentAccounts.update(_id, _financingid,_data,_key,_hash);
         return count;
     }
     function queryPushPaymentAccountsInList(string _id)public returns(string){
