@@ -49,7 +49,6 @@ type packedModifyInvoiceMessage struct {
 
 // 特别针对发票信息的Message结构体
 type packedInvoiceMessage struct {
-	financingID   string
 	uuid          string
 	header        string
 	params        string

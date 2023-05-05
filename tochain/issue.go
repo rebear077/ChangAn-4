@@ -184,8 +184,8 @@ func (c *Controller) IssuePublicKeyStorage(id string, role string, key string) (
 
 // 上传融资意向请求
 // 入口参数：id：供应商编号；financingid:融资意向申请id；data：加密后的数据；key：加密后的key值；hash：哈希值
-func (c *Controller) IssueSupplierFinancingApplication(UUID, id, params, data, key, hash string) error {
-	transaction, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, params, data, key, hash)
+func (c *Controller) IssueSupplierFinancingApplication(UUID, id, state, data, key, hash string) error {
+	transaction, err := c.session.AsyncIssueSupplierFinancingApplication(invokeIssueSupplierFinancingApplicationHandler, id, state, data, key, hash)
 	if err != nil {
 		return err
 	}
@@ -221,8 +221,8 @@ func (c *Controller) IssueSupplierFinancingApplication(UUID, id, params, data, k
 
 // 更新融资意向请求
 // 入口参数：id：供应商编号；financingid:融资意向申请id；data：加密后的数据；key：加密后的key值；hash：哈希值
-func (c *Controller) UpdateSupplierFinancingApplication(UUID, id, params, data, key, hash string) error {
-	transaction, err := c.session.AsyncUpdateSupplierFinancingApplication(invokeUpdateSupplierFinancingApplicationHandler, id, params, data, key, hash)
+func (c *Controller) UpdateSupplierFinancingApplication(UUID, id, state, data, key, hash string) error {
+	transaction, err := c.session.AsyncUpdateSupplierFinancingApplication(invokeUpdateSupplierFinancingApplicationHandler, id, state, data, key, hash)
 	if err != nil {
 		return err
 	}

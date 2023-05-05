@@ -197,8 +197,8 @@ func (s *Server) IssuePoolUsedInformation(UUID, id, params string, cipher, encry
 }
 
 // 上传融资意向请求
-func (s *Server) IssueSupplierFinancingApplication(UUID, id, params string, cipher, encryptionKey, signed []byte) error {
-	err := s.ctr.IssueSupplierFinancingApplication(UUID, id, params, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) IssueSupplierFinancingApplication(UUID, id, state string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.IssueSupplierFinancingApplication(UUID, id, state, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
@@ -207,8 +207,8 @@ func (s *Server) IssueSupplierFinancingApplication(UUID, id, params string, ciph
 }
 
 // 更新融资意向请求
-func (s *Server) UpdateSupplierFinancingApplication(UUID, id, params string, cipher, encryptionKey, signed []byte) error {
-	err := s.ctr.UpdateSupplierFinancingApplication(UUID, id, params, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) UpdateSupplierFinancingApplication(UUID, id, state string, cipher, encryptionKey, signed []byte) error {
+	err := s.ctr.UpdateSupplierFinancingApplication(UUID, id, state, string(cipher), string(encryptionKey), string(signed))
 	if err != nil {
 		return err
 	} else {
