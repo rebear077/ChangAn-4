@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,40 +15,46 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// const (
+//
+//	PoolPlanInfos             = "poolPlan"
+//	PoolUsedInfos             = "poolUsed"
+//	HistoricalOrderInfos      = "hisOrder"
+//	HistoricalReceivableInfos = "hisReceivable"
+//	HistoricalSettleInfos     = "hisSettle"
+//	HistoricalUsedInfos       = "hisUsed"
+//
+// )
 const (
-	PoolPlanInfos             = "poolPlan"
-	PoolUsedInfos             = "poolUsed"
-	HistoricalOrderInfos      = "hisOrder"
-	HistoricalReceivableInfos = "hisReceivable"
-	HistoricalSettleInfos     = "hisSettle"
-	HistoricalUsedInfos       = "hisUsed"
+	waitCheck = "待审批"
+	again     = "重新申请"
 )
 
 var logs = logloader.NewLog()
 
 type Promoter struct {
-	server        *server.Server
-	DataApi       *receive.FrontEnd
-	monitor       *server.Monitor
-	encryptedPool *Pools
-	loader        *logloader.Loader
-	chaininfo     *chainloader.ChainInfo
+	server  *server.Server
+	DataApi *receive.FrontEnd
+	monitor *server.Monitor
+	// encryptedPool *Pools
+	loader    *logloader.Loader
+	chaininfo *chainloader.ChainInfo
 }
 
 func NewPromoter() *Promoter {
 	ser := server.NewServer()
 	api := receive.NewFrontEnd()
 	monitor := server.NewMonitor()
-	pool := NewPools()
+	// pool := NewPools()
 	lder := logloader.NewLoader()
 	chainld := chainloader.NewChainInfo()
 	return &Promoter{
-		server:        ser,
-		DataApi:       api,
-		monitor:       monitor,
-		encryptedPool: pool,
-		loader:        lder,
-		chaininfo:     chainld,
+		server:  ser,
+		DataApi: api,
+		monitor: monitor,
+		// encryptedPool: pool,
+		loader:    lder,
+		chaininfo: chainld,
 	}
 }
 
@@ -62,10 +67,10 @@ func (p *Promoter) Start() {
 	for {
 		if p.monitor.VerifyChainStatus() {
 			p.InvoiceInfoHandler()
-			p.SupplierFinancingApplicationInfoWithSelectedInfosHandler()
 			p.HistoricalInfoHandler()
 			p.PushPaymentAccountsInfoHandler()
-			p.PoolInfoHandler()
+			p.EnterPoolInfoHandler()
+			p.FinancingApplicationInfoWithSelectedInfosHandler()
 			p.ModifySupplierFinancingApplicationInfoWithSelectedInfosHandler()
 		} else {
 			time.Sleep(5 * time.Second)
@@ -76,8 +81,8 @@ func (p *Promoter) Start() {
 // 处理推送的发票信息
 func (p *Promoter) InvoiceInfoHandler() {
 	if len(p.DataApi.InvoicePool) != 0 {
-		logs.Infoln("开始同步发票信息")
-		var wg sync.WaitGroup
+		logs.Infoln("开始处理贸易数据-发票信息")
+		// var wg sync.WaitGroup
 		invoices := make(map[string]*receive.InvoiceInformation, 0)
 		p.DataApi.IssueInvoicemutex.Lock()
 		for uuid := range p.DataApi.InvoicePool {
@@ -85,72 +90,21 @@ func (p *Promoter) InvoiceInfoHandler() {
 			delete(p.DataApi.InvoicePool, uuid)
 		}
 		p.DataApi.IssueInvoicemutex.Unlock()
-		invoiceMapping := server.EncodeInvoiceInformation(invoices)
-		for uuid, invoices := range invoiceMapping {
-			for _, invoice := range invoices {
-				for id, info := range invoice {
-					wg.Add(1)
-					tempheader := id
-					tempinfo := info
-					UUID := uuid
-					go func(UUID, tempheader, tempinfo string) {
-						p.packInvoiceInfo(UUID, tempheader, tempinfo, "fast", "invoice")
-						wg.Done()
-					}(UUID, tempheader, tempinfo)
-				}
-			}
-		}
-		wg.Wait()
-		messages := p.encryptedPool.QueryMessages("invoice", "fast")
-		for _, message := range messages {
-			temp, _ := message.(packedInvoiceMessage)
-			err := p.server.IssueInvoiceInformation(temp.uuid, temp.header, temp.params, temp.cipher, temp.encryptionKey)
+		packedInvoices := p.server.PackedTradeData_InvoiceInfo(invoices)
+		for _, packedInvoice := range packedInvoices {
+			err := p.server.IssueInvoiceInformation(packedInvoice.Uuid, packedInvoice.Header, packedInvoice.Params, packedInvoice.Cipher, packedInvoice.EncryptionKey)
 			if err != nil {
-				logs.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
+				logs.Errorln("发票信息上链失败:", packedInvoice.Header, "失败信息为:", err)
 			}
 		}
-		for {
-			counter := 0
-			uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
-				uptoChain.InvoiceMapLock.Lock()
-				mapping := value.(map[string]*uptoChain.ResponseMessage)
-				counter += len(mapping)
-				for _, message := range mapping {
-					if message.GetMessage() == "" {
-						counter = 0
-						break
-					}
-				}
-				uptoChain.InvoiceMapLock.Unlock()
-				return true
-			})
-			// fmt.Println(counter)
-			if counter == len(messages) {
-				p.DataApi.IssueInvoiceOKChan <- struct{}{}
-				for {
-					flag := 0
-					uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
-						if key != nil {
-							flag++
-							return false
-						}
-						return true
-					})
-					if flag == 0 {
-						break
-					}
-				}
-				break
-			}
-		}
+		p.invoiceInfoWaiter(len(packedInvoices))
 	}
 }
 
 // 处理历史交易信息
 func (p *Promoter) HistoricalInfoHandler() {
 	if len(p.DataApi.TransactionHistoryPool) != 0 {
-		logs.Infoln("开始历史交易信息")
-		var wg sync.WaitGroup
+		logs.Infoln("开始c处理贸易数据-历史交易信息")
 		hisinfos := make(map[string]*receive.TransactionHistory, 0)
 		p.DataApi.TransactionHistorymutex.Lock()
 		for uuid := range p.DataApi.TransactionHistoryPool {
@@ -158,223 +112,46 @@ func (p *Promoter) HistoricalInfoHandler() {
 			delete(p.DataApi.TransactionHistoryPool, uuid)
 		}
 		p.DataApi.TransactionHistorymutex.Unlock()
-		mapping := server.EncodeTransactionHistory(hisinfos)
-		fmt.Println(mapping)
-		for UUID, historyInfos := range mapping {
-			for index := range historyInfos {
-				for header, info := range historyInfos[index] {
-					tempheader := header
-					tempinfo := info
-					wg.Add(1)
-					go func(UUID, tempheader, tempinfo string) {
-						usedvalue, settlevalue, ordervalue, receivablevalue := server.HistoricalInformationSlice(tempheader, tempinfo, 1)
-						logrus.Infoln("usedvalue", usedvalue)
-						logrus.Infoln("settlevalue", settlevalue)
-						logrus.Infoln("ordervalue", ordervalue)
-						logrus.Infoln("receivablevalue", receivablevalue)
-						p.packHistoricalInfos(UUID, tempheader, usedvalue, "fast", "historicalUsed")
-						p.packHistoricalInfos(UUID, tempheader, settlevalue, "fast", "historicalSettle")
-						p.packHistoricalInfos(UUID, tempheader, ordervalue, "fast", "historicalOrder")
-						p.packHistoricalInfos(UUID, tempheader, receivablevalue, "fast", "historicalReceivable")
-						wg.Done()
-					}(UUID, tempheader, tempinfo)
-				}
-			}
-		}
-		wg.Wait()
-		hisUsedMessage := p.encryptedPool.QueryMessages("historicalUsed", "fast")
-		hisSettleMessage := p.encryptedPool.QueryMessages("historicalSettle", "fast")
-		hisOrderMessage := p.encryptedPool.QueryMessages("historicalOrder", "fast")
-		hisReceivableMessage := p.encryptedPool.QueryMessages("historicalReceivable", "fast")
-		for _, message := range hisUsedMessage {
-			tempUsed, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalUsedInformation(tempUsed.uuid, tempUsed.header, tempUsed.params, tempUsed.cipher, tempUsed.encryptionKey)
+		used, settle, order, receivable := p.server.PackedTradeData_HistoricalInfo(hisinfos)
+		for _, usedInfo := range used {
+			err := p.server.IssueHistoricalUsedInformation(usedInfo.Uuid, usedInfo.Header, usedInfo.Params, usedInfo.Cipher, usedInfo.EncryptionKey)
 			if err != nil {
-				logs.Errorln("信息上链失败:", tempUsed.header, "失败信息为:", err)
+				logs.Errorln("信息上链失败:", usedInfo.Header, "失败信息为:", err)
 			}
 		}
-		for _, message := range hisSettleMessage {
-			tempSettle, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalSettleInformation(tempSettle.uuid, tempSettle.header, tempSettle.params, tempSettle.cipher, tempSettle.encryptionKey)
+		for _, settleInfo := range settle {
+			err := p.server.IssueHistoricalSettleInformation(settleInfo.Uuid, settleInfo.Header, settleInfo.Params, settleInfo.Cipher, settleInfo.EncryptionKey)
 			if err != nil {
-				logs.Errorln("信息上链失败:", tempSettle.header, "失败信息为:", err)
+				logs.Errorln("信息上链失败:", settleInfo.Header, "失败信息为:", err)
 			}
 		}
-		for _, message := range hisOrderMessage {
-			tempOrder, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalOrderInformation(tempOrder.uuid, tempOrder.header, tempOrder.params, tempOrder.cipher, tempOrder.encryptionKey)
+		for _, orderInfo := range order {
+			err := p.server.IssueHistoricalOrderInformation(orderInfo.Uuid, orderInfo.Header, orderInfo.Params, orderInfo.Cipher, orderInfo.EncryptionKey)
 			if err != nil {
-				logs.Errorln("信息上链失败:", tempOrder.header, "失败信息为:", err)
+				logs.Errorln("信息上链失败:", orderInfo.Header, "失败信息为:", err)
 			}
 		}
-		for _, message := range hisReceivableMessage {
-			tempReceivable, _ := message.(packedHistoricalMessage)
-			err := p.server.IssueHistoricalReceivableInformation(tempReceivable.uuid, tempReceivable.header, tempReceivable.params, tempReceivable.cipher, tempReceivable.encryptionKey)
+		for _, receivableInfo := range receivable {
+			err := p.server.IssueHistoricalReceivableInformation(receivableInfo.Uuid, receivableInfo.Header, receivableInfo.Params, receivableInfo.Cipher, receivableInfo.EncryptionKey)
 			if err != nil {
-				logs.Errorln("信息上链失败:", tempReceivable.header, "失败信息为:", err)
+				logs.Errorln("信息上链失败:", receivableInfo.Header, "失败信息为:", err)
 			}
 		}
+		var wg sync.WaitGroup
 		wg.Add(4)
-		//order
-		go func() {
-			for {
-				counter := 0
-				uptoChain.HistoricalOrderMap.Range(func(key, value interface{}) bool {
-					uptoChain.HistoricalOrderMapLock.Lock()
-					mapping := value.(map[string]*uptoChain.ResponseMessage)
-					counter += len(mapping)
-					for _, message := range mapping {
-						if message.GetMessage() == "" {
-							counter = 0
-							break
-						}
-					}
-					uptoChain.HistoricalOrderMapLock.Unlock()
-					return true
-				})
-				if counter == len(hisOrderMessage) {
-					p.DataApi.IssueHistoricalOrderInfoOKChan <- struct{}{}
-					for {
-						flag := 0
-						uptoChain.HistoricalOrderMap.Range(func(key, value interface{}) bool {
-							if key != nil {
-								flag++
-								return false
-							}
-							return true
-						})
-						if flag == 0 {
-							break
-						}
-					}
-					break
-				}
-			}
-			wg.Done()
-		}()
-		//settle
-		go func() {
-			for {
-				counter := 0
-				uptoChain.HistoricalSettleMap.Range(func(key, value interface{}) bool {
-					uptoChain.HistoricalSettleMapLock.Lock()
-					mapping := value.(map[string]*uptoChain.ResponseMessage)
-					counter += len(mapping)
-					for _, message := range mapping {
-						if message.GetMessage() == "" {
-							counter = 0
-							break
-						}
-					}
-					uptoChain.HistoricalSettleMapLock.Unlock()
-					return true
-				})
-				if counter == len(hisSettleMessage) {
-					p.DataApi.IssueHistoricalSettleInfoOKChan <- struct{}{}
-					for {
-						flag := 0
-						uptoChain.HistoricalSettleMap.Range(func(key, value interface{}) bool {
-							if key != nil {
-								flag++
-								return false
-							}
-							return true
-						})
-						if flag == 0 {
-							break
-						}
-					}
-					break
-				}
-			}
-			wg.Done()
-		}()
-		//used
-		go func() {
-			for {
-				counter := 0
-				uptoChain.HistoricalUsedMap.Range(func(key, value interface{}) bool {
-					uptoChain.HistoricalUsedMapLock.Lock()
-					mapping := value.(map[string]*uptoChain.ResponseMessage)
-					counter += len(mapping)
-					for _, message := range mapping {
-						if message.GetMessage() == "" {
-							counter = 0
-							break
-						}
-					}
-					uptoChain.HistoricalUsedMapLock.Unlock()
-					return true
-				})
-				if counter == len(hisUsedMessage) {
-					p.DataApi.IssueHistoryUsedInfoOKChan <- struct{}{}
-					for {
-						flag := 0
-						uptoChain.HistoricalUsedMap.Range(func(key, value interface{}) bool {
-							if key != nil {
-								flag++
-								return false
-							}
-							return true
-						})
-						if flag == 0 {
-							break
-						}
-					}
-					break
-				}
-			}
-			wg.Done()
-		}()
-		//receivable
-		go func() {
-			for {
-				counter := 0
-				uptoChain.HistoricalReceivableMap.Range(func(key, value interface{}) bool {
-					uptoChain.HistoricalReceivableMapLock.Lock()
-					mapping := value.(map[string]*uptoChain.ResponseMessage)
-					counter += len(mapping)
-					for _, message := range mapping {
-						if message.GetMessage() == "" {
-							counter = 0
-							break
-						}
-					}
-					uptoChain.HistoricalReceivableMapLock.Unlock()
-					return true
-				})
-				if counter == len(hisReceivableMessage) {
-					p.DataApi.IssueHistoricalReceivableInfoOKChan <- struct{}{}
-					for {
-						flag := 0
-						uptoChain.HistoricalReceivableMap.Range(func(key, value interface{}) bool {
-							if key != nil {
-								flag++
-								return false
-							}
-							return true
-						})
-						if flag == 0 {
-							break
-						}
-					}
-					break
-				}
-			}
-			wg.Done()
-		}()
+		go p.historicalOrderInfoWaiter(len(order), &wg)
+		go p.historicalReveivableInfoWaiter(len(receivable), &wg)
+		go p.historicalSettleInfoWaiter(len(settle), &wg)
+		go p.historicalUsedInfoWaiter(len(used), &wg)
 		wg.Wait()
-		logrus.Infoln("outoutout")
-		logs.Println("退出")
 	}
 }
 
 // 处理入池数据信息
-func (p *Promoter) PoolInfoHandler() {
+func (p *Promoter) EnterPoolInfoHandler() {
 	if len(p.DataApi.EnterpoolDataPool) != 0 {
 		logrus.Infoln("开始入池数据信息")
 		logs.Infoln("开始入池数据信息")
-		var wg sync.WaitGroup
 		poolInfos := make(map[string]*receive.EnterpoolData, 0)
 		p.DataApi.EnterpoolDatamutex.Lock()
 		for uuid := range p.DataApi.EnterpoolDataPool {
@@ -382,156 +159,437 @@ func (p *Promoter) PoolInfoHandler() {
 			delete(p.DataApi.EnterpoolDataPool, uuid)
 		}
 		p.DataApi.EnterpoolDatamutex.Unlock()
-		mapping := server.EncodeEnterpoolData(poolInfos)
-		for UUID, poolInfos := range mapping {
-			for index := range poolInfos {
-				for header, info := range poolInfos[index] {
-					tempheader := header
-					tempinfo := info
-					wg.Add(1)
-					go func(UUID, tempheader, tempinfo string) {
-						var wwg sync.WaitGroup
-						planvalue, providerusedvalue := server.PoolInformationSlice(tempheader, tempinfo, 1)
-						wwg.Add(2)
-						go func(UUID, tempheader string, planvalue []string) {
-							p.packPoolInfos(UUID, tempheader, planvalue, "fast", "poolPlan")
-							wwg.Done()
-						}(UUID, tempheader, planvalue)
-						go func(UUID, tempheader string, providerusedvalue []string) {
-							p.packPoolInfos(UUID, tempheader, providerusedvalue, "fast", "poolUsed")
-							wwg.Done()
-						}(UUID, tempheader, providerusedvalue)
-						wwg.Wait()
-						wg.Done()
-					}(UUID, tempheader, tempinfo)
-				}
+		poolPlan, poolUsed := p.server.PackedTradeData_EnterPoolInfo(poolInfos)
+		for _, plan := range poolPlan {
+			err := p.server.IssuePoolPlanInformation(plan.Uuid, plan.Header, plan.Params, plan.Cipher, plan.EncryptionKey)
+			if err != nil {
+				logs.Errorln("入池计划信息上链失败:", plan.Header, "失败信息为:", err)
 			}
 		}
-		wg.Wait()
-		planMessages := p.encryptedPool.QueryMessages("poolPlan", "fast")
-		usedMessages := p.encryptedPool.QueryMessages("poolUsed", "fast")
-		for _, message := range planMessages {
-			tempPlan, _ := message.(packedPoolMessage)
-			err := p.server.IssuePoolPlanInformation(tempPlan.uuid, tempPlan.header, tempPlan.params, tempPlan.cipher, tempPlan.encryptionKey)
+		for _, used := range poolUsed {
+			err := p.server.IssuePoolUsedInformation(used.Uuid, used.Header, used.Params, used.Cipher, used.EncryptionKey)
 			if err != nil {
-				logs.Errorln("信息上链失败:", tempPlan.header, "失败信息为:", err)
-			}
-		}
-		for _, message := range usedMessages {
-			tempUsed, _ := message.(packedPoolMessage)
-			err := p.server.IssuePoolUsedInformation(tempUsed.uuid, tempUsed.header, tempUsed.params, tempUsed.cipher, tempUsed.encryptionKey)
-			if err != nil {
-				logs.Errorln("信息上链失败:", tempUsed.header, "失败信息为:", err)
+				logs.Errorln("入池用户信息上链失败:", used.Header, "失败信息为:", err)
 			}
 
 		}
-		wg.Add(2)
-		go func() {
-			for {
-				counter := 0
-				uptoChain.PoolPlanMap.Range(func(key, value interface{}) bool {
-					uptoChain.PoolPlanMapLock.Lock()
-					mapping := value.(map[string]*uptoChain.ResponseMessage)
-					counter += len(mapping)
-					for _, message := range mapping {
-						if message.GetMessage() == "" {
-							counter = 0
-							break
-						}
-					}
-					uptoChain.PoolPlanMapLock.Unlock()
-					return true
-				})
-				if counter == len(planMessages) {
-					p.DataApi.IssueEnterPoolPlanOKChan <- struct{}{}
-					for {
-						flag := 0
-						uptoChain.PoolPlanMap.Range(func(key, value interface{}) bool {
-							if key != nil {
-								flag++
-								return false
-							}
-							return true
-						})
-						if flag == 0 {
-							break
-						}
-					}
-					break
-				}
-			}
-			wg.Done()
-		}()
-		go func() {
-			for {
-				counter := 0
-				uptoChain.PoolUsedMap.Range(func(key, value interface{}) bool {
-					uptoChain.PoolUsedMapLock.Lock()
-					mapping := value.(map[string]*uptoChain.ResponseMessage)
-					counter += len(mapping)
-					for _, message := range mapping {
-						if message.GetMessage() == "" {
-							counter = 0
-							break
-						}
-					}
-					uptoChain.PoolUsedMapLock.Unlock()
-					return true
-				})
-				if counter == len(usedMessages) {
-					p.DataApi.IssueEnterPoolUsedOKChan <- struct{}{}
-					for {
-						flag := 0
-						uptoChain.PoolUsedMap.Range(func(key, value interface{}) bool {
-							if key != nil {
-								flag++
-								return false
-							}
-							return true
-						})
-						if flag == 0 {
-							break
-						}
-					}
-					break
-				}
-			}
-			wg.Done()
-		}()
+		var wg sync.WaitGroup
+		go p.enterPoolPlanInfoWaiter(len(poolPlan), &wg)
+		go p.enterPoolUsedInfoWaiter(len(poolUsed), &wg)
 		wg.Wait()
 		logrus.Infoln("outout")
-		logs.Println("退出")
 	}
 }
 
-// 修改发票信息的owner字段
-func (p *Promoter) modifyInvoiceInfoHandler(invoices map[string]map[string]map[int]map[string]string) {
-	var wg sync.WaitGroup
-	for uuid, invoicewithID := range invoices {
-		for financingID, infos := range invoicewithID {
-			for index := range infos {
-				for id, info := range infos[index] {
-					wg.Add(1)
-					tempheader := id
-					tempinfo := info
-					UUID := uuid
-					go func(financingID, UUID, tempheader, tempinfo string) {
-						p.packModifyInvoiceInfo(financingID, UUID, tempheader, tempinfo, "fast", "modifyinvoice")
-						wg.Done()
-					}(financingID, UUID, tempheader, tempinfo)
-				}
+// 处理回款账户信息
+func (p *Promoter) PushPaymentAccountsInfoHandler() {
+	if len(p.DataApi.CollectionAccountPool) != 0 {
+		logs.Infoln("开始同步回款信息")
+		logrus.Infoln("开始同步回款信息")
+		payinfos := make(map[string]*receive.CollectionAccount, 0)
+		p.DataApi.CollectionAccountmutex.Lock()
+		for uuid := range p.DataApi.CollectionAccountPool {
+			payinfos[uuid] = p.DataApi.CollectionAccountPool[uuid]
+			delete(p.DataApi.CollectionAccountPool, uuid)
+		}
+		p.DataApi.CollectionAccountmutex.Unlock()
+		accounts := p.server.PackedTradeData_AccountInfo(payinfos)
+		for _, account := range accounts {
+			err := p.server.UpdatePushPaymentAccount(account.Uuid, account.Header, account.Cipher, account.EncryptionKey, account.Signed)
+			if err != nil {
+				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
 			}
 		}
+		p.accountsInfoWaiter(len(accounts))
 	}
-	wg.Wait()
-	messages := p.encryptedPool.QueryMessages("modifyinvoice", "fast")
-	for _, message := range messages {
-		temp, _ := message.(packedModifyInvoiceMessage)
-		err := p.server.VerifyAndUpdateInvoiceInformation(temp.uuid, temp.header, temp.sign, temp.financingID)
-		if err != nil {
-			logs.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
+}
+
+// 处理融资意向申请信息
+func (p *Promoter) FinancingApplicationInfoWithSelectedInfosHandler() {
+	if len(p.DataApi.FinancingIntentionWithSelectedInfosPool) != 0 {
+		logs.Infoln("开始同步融资意向请求信息")
+		finintensWithSelectedInfos := make(map[string]*receive.SelectedInfosAndFinancingApplication, 0)
+		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Lock()
+		for uuid := range p.DataApi.FinancingIntentionWithSelectedInfosPool {
+			finintensWithSelectedInfos[uuid] = p.DataApi.FinancingIntentionWithSelectedInfosPool[uuid]
+			delete(p.DataApi.FinancingIntentionWithSelectedInfosPool, uuid)
+		}
+		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Unlock()
+		financingInfos, modifyInvoices := p.server.PackedApplicationAndModifyInvoiceInfos(finintensWithSelectedInfos, waitCheck)
+		for _, application := range financingInfos {
+			err := p.server.IssueSupplierFinancingApplication(application.Uuid, application.Header, application.State, application.Cipher, application.EncryptionKey, application.Signed)
+			if err != nil {
+				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
+			}
+		}
+		for _, modify := range modifyInvoices {
+			err := p.server.VerifyAndUpdateInvoiceInformation(modify.Uuid, modify.Header, modify.Sign, modify.FinancingID)
+			if err != nil {
+				logs.Errorln("发票信息上链失败:", modify.Header, "失败信息为:", err)
+			}
+		}
+		var wg sync.WaitGroup
+		go p.financingApplicationInfoWaiter(len(financingInfos), &wg)
+		go p.modifyInvoiceInfoWaiter(len(modifyInvoices), &wg)
+		wg.Done()
+	}
+}
+
+// 处理修改融资意向申请信息
+func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandler() {
+	if len(p.DataApi.ModifyFinancingWithSelectedInfosPool) != 0 {
+		logs.Infoln("开始修改融资意向请求信息")
+		finintensWithSelectedInfos := make(map[string]*receive.SelectedInfosAndFinancingApplication, 0)
+		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Lock()
+		for uuid := range p.DataApi.ModifyFinancingWithSelectedInfosPool {
+			finintensWithSelectedInfos[uuid] = p.DataApi.ModifyFinancingWithSelectedInfosPool[uuid]
+			delete(p.DataApi.ModifyFinancingWithSelectedInfosPool, uuid)
+		}
+		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Unlock()
+		financingInfos, modifyInvoices := p.server.PackedApplicationAndModifyInvoiceInfos(finintensWithSelectedInfos, again)
+		for _, financingInfo := range financingInfos {
+			err := p.server.UpdateSupplierFinancingApplication(financingInfo.Uuid, financingInfo.Header, financingInfo.State, financingInfo.Cipher, financingInfo.EncryptionKey, financingInfo.Signed)
+			if err != nil {
+				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
+			}
+		}
+		for _, modifyInvoice := range modifyInvoices {
+			err := p.server.VerifyAndUpdateInvoiceInformation(modifyInvoice.Uuid, modifyInvoice.Header, modifyInvoice.Sign, modifyInvoice.FinancingID)
+			if err != nil {
+				logs.Errorln("发票信息上链失败:", modifyInvoice.Header, "失败信息为:", err)
+			}
+		}
+		var wg sync.WaitGroup
+		go p.modifyFinancingInfoWaiter(len(financingInfos), &wg)
+		go p.modifyInvoiceInfoWhenModifyApplicationWaiter(len(modifyInvoices), &wg)
+		wg.Wait()
+
+	}
+}
+func (p *Promoter) invoiceInfoWaiter(length int) {
+	for {
+		counter := 0
+		uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
+			uptoChain.InvoiceMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.InvoiceMapLock.Unlock()
+			return true
+		})
+		if counter == length {
+			p.DataApi.IssueInvoiceOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
 		}
 	}
+}
+
+func (p *Promoter) historicalOrderInfoWaiter(orderLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.HistoricalOrderMap.Range(func(key, value interface{}) bool {
+			uptoChain.HistoricalOrderMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.HistoricalOrderMapLock.Unlock()
+			return true
+		})
+		if counter == orderLength {
+			p.DataApi.IssueHistoricalOrderInfoOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.HistoricalOrderMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+	wg.Done()
+}
+func (p *Promoter) historicalReveivableInfoWaiter(receivableLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.HistoricalReceivableMap.Range(func(key, value interface{}) bool {
+			uptoChain.HistoricalReceivableMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.HistoricalReceivableMapLock.Unlock()
+			return true
+		})
+		if counter == receivableLength {
+			p.DataApi.IssueHistoricalReceivableInfoOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.HistoricalReceivableMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+	wg.Done()
+}
+func (p *Promoter) historicalSettleInfoWaiter(settleLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.HistoricalSettleMap.Range(func(key, value interface{}) bool {
+			uptoChain.HistoricalSettleMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.HistoricalSettleMapLock.Unlock()
+			return true
+		})
+		if counter == settleLength {
+			p.DataApi.IssueHistoricalSettleInfoOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.HistoricalSettleMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+	wg.Done()
+}
+func (p *Promoter) historicalUsedInfoWaiter(usedLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.HistoricalUsedMap.Range(func(key, value interface{}) bool {
+			uptoChain.HistoricalUsedMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.HistoricalUsedMapLock.Unlock()
+			return true
+		})
+		if counter == usedLength {
+			p.DataApi.IssueHistoryUsedInfoOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.HistoricalUsedMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+	wg.Done()
+}
+func (p *Promoter) enterPoolPlanInfoWaiter(planLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.PoolPlanMap.Range(func(key, value interface{}) bool {
+			uptoChain.PoolPlanMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.PoolPlanMapLock.Unlock()
+			return true
+		})
+		if counter == planLength {
+			p.DataApi.IssueEnterPoolPlanOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.PoolPlanMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+	wg.Done()
+}
+func (p *Promoter) enterPoolUsedInfoWaiter(usedLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.PoolUsedMap.Range(func(key, value interface{}) bool {
+			uptoChain.PoolUsedMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.PoolUsedMapLock.Unlock()
+			return true
+		})
+		if counter == usedLength {
+			p.DataApi.IssueEnterPoolUsedOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.PoolUsedMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+	wg.Done()
+}
+func (p *Promoter) accountsInfoWaiter(accountsLength int) {
+	for {
+		counter := 0
+		uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+			uptoChain.CollectionAccountMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.CollectionAccountMapLock.Unlock()
+			return true
+		})
+		if counter == accountsLength {
+			p.DataApi.ModifyAccountOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+}
+func (p *Promoter) financingApplicationInfoWaiter(applicationLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
+			uptoChain.FinancingApplicationIssueMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.FinancingApplicationIssueMapLock.Unlock()
+			return true
+		})
+		if counter == applicationLength {
+			p.DataApi.FinancingIntentionIssueOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+	wg.Done()
+}
+func (p *Promoter) modifyInvoiceInfoWaiter(modifyLength int, wg *sync.WaitGroup) {
 	for {
 		counter := 0
 		uptoChain.ModifyInvoiceMap.Range(func(key, value interface{}) bool {
@@ -547,7 +605,7 @@ func (p *Promoter) modifyInvoiceInfoHandler(invoices map[string]map[string]map[i
 			uptoChain.ModifyInvoiceMapLock.Unlock()
 			return true
 		})
-		if counter == len(messages) {
+		if counter == modifyLength {
 			p.DataApi.ModifyInvoiceOKChan <- struct{}{}
 			for {
 				flag := 0
@@ -565,184 +623,45 @@ func (p *Promoter) modifyInvoiceInfoHandler(invoices map[string]map[string]map[i
 			break
 		}
 	}
+	wg.Done()
 }
-
-// 发布融资意向请求
-func (p *Promoter) SupplierFinancingApplicationInfoWithSelectedInfosHandler() {
-	if len(p.DataApi.FinancingIntentionWithSelectedInfosPool) != 0 {
-		logs.Infoln("开始同步融资意向请求信息")
-		var wg sync.WaitGroup
-		finintensWithSelectedInfos := make(map[string]*receive.SelectedInfosAndFinancingApplication, 0)
-		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Lock()
-		for uuid := range p.DataApi.FinancingIntentionWithSelectedInfosPool {
-			finintensWithSelectedInfos[uuid] = p.DataApi.FinancingIntentionWithSelectedInfosPool[uuid]
-			delete(p.DataApi.FinancingIntentionWithSelectedInfosPool, uuid)
-		}
-		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Unlock()
-		financingInfo, Invoices := server.HandleFinancingIntentionAndSelectedInfos(finintensWithSelectedInfos)
-		fmt.Println(Invoices)
-		go p.modifyInvoiceInfoHandler(Invoices)
-		for UUID := range financingInfo {
-			for header, info := range financingInfo[UUID] {
-				wg.Add(1)
-				tempheader := header
-				tempinfo := info
-				go func(UUID, tempheader, tempinfo string) {
-					p.packFinancingInfo(UUID, tempheader, tempinfo, "fast", "application")
-					wg.Done()
-				}(UUID, tempheader, tempinfo)
-			}
-		}
-
-		wg.Wait()
-		messages := p.encryptedPool.QueryMessages("application", "fast")
-		for _, message := range messages {
-			temp, _ := message.(packedFinancingMessage)
-			err := p.server.IssueSupplierFinancingApplication(temp.uuid, temp.header, temp.state, temp.cipher, temp.encryptionKey, temp.signed)
-			if err != nil {
-				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
-			}
-		}
-		for {
-			counter := 0
-			uptoChain.FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
-				uptoChain.FinancingApplicationIssueMapLock.Lock()
-				mapping := value.(map[string]*uptoChain.ResponseMessage)
-				counter += len(mapping)
-				for _, message := range mapping {
-					if message.GetMessage() == "" {
-						counter = 0
-						break
-					}
+func (p *Promoter) modifyFinancingInfoWaiter(applicationLength int, wg *sync.WaitGroup) {
+	for {
+		counter := 0
+		uptoChain.ModifyFinancingMap.Range(func(key, value interface{}) bool {
+			uptoChain.ModifyFinancingMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
 				}
-				uptoChain.FinancingApplicationIssueMapLock.Unlock()
-				return true
-			})
-			if counter == len(messages) {
-				p.DataApi.FinancingIntentionIssueOKChan <- struct{}{}
-				for {
-					flag := 0
-					uptoChain.FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
-						if key != nil {
-							flag++
-							return false
-						}
-						return true
-					})
-					if flag == 0 {
-						break
-					}
-				}
-				break
 			}
+			uptoChain.ModifyFinancingMapLock.Unlock()
+			return true
+		})
+		if counter == applicationLength {
+			p.DataApi.ModifyFinancingOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.ModifyFinancingMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
 		}
 	}
+	wg.Done()
 }
-
-// 处理回款账户信息
-func (p *Promoter) PushPaymentAccountsInfoHandler() {
-	if len(p.DataApi.CollectionAccountPool) != 0 {
-		logs.Infoln("开始同步回款信息")
-		logrus.Infoln("开始同步回款信息")
-		var wg sync.WaitGroup
-		payinfos := make(map[string]*receive.CollectionAccount, 0)
-		p.DataApi.CollectionAccountmutex.Lock()
-		for uuid := range p.DataApi.CollectionAccountPool {
-			payinfos[uuid] = p.DataApi.CollectionAccountPool[uuid]
-			delete(p.DataApi.CollectionAccountPool, uuid)
-		}
-		p.DataApi.CollectionAccountmutex.Unlock()
-		mapping := server.EncodeCollectionAccount(payinfos)
-		fmt.Println(mapping)
-		for UUID, accounts := range mapping {
-			for index := range accounts {
-				for header, info := range accounts[index] {
-					wg.Add(1)
-					tempheader := header
-					tempinfo := info
-					go func(UUID, tempheader, tempinfo string) {
-						p.packAccountsInfo(UUID, tempheader, tempinfo, "fast", "payment")
-						wg.Done()
-					}(UUID, tempheader, tempinfo)
-				}
-			}
-		}
-		wg.Wait()
-		messages := p.encryptedPool.QueryMessages("payment", "fast")
-		for _, message := range messages {
-			temp, ok := message.(packedMessage)
-			if !ok {
-				fmt.Println("errorerror")
-			}
-			err := p.server.UpdatePushPaymentAccount(temp.uuid, temp.header, temp.cipher, temp.encryptionKey, temp.signed)
-			if err != nil {
-				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
-			}
-		}
-		for {
-			counter := 0
-			uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
-				uptoChain.CollectionAccountMapLock.Lock()
-				mapping := value.(map[string]*uptoChain.ResponseMessage)
-				counter += len(mapping)
-				for _, message := range mapping {
-					if message.GetMessage() == "" {
-						counter = 0
-						break
-					}
-				}
-				uptoChain.CollectionAccountMapLock.Unlock()
-				return true
-			})
-			if counter == len(messages) {
-				p.DataApi.ModifyAccountOKChan <- struct{}{}
-				for {
-					flag := 0
-					uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
-						if key != nil {
-							flag++
-							return false
-						}
-						return true
-					})
-					if flag == 0 {
-						break
-					}
-				}
-				break
-			}
-		}
-	}
-}
-
-// 处理融资意向申请时所需要的发票信息处理
-func (p *Promoter) modifyFinancingInvoiceInfoHandler(invoices map[string]map[string]map[int]map[string]string) {
-	var wg sync.WaitGroup
-	for uuid, invoicewithID := range invoices {
-		for financingID, infos := range invoicewithID {
-			for index := range infos {
-				for id, info := range infos[index] {
-					wg.Add(1)
-					tempheader := id
-					tempinfo := info
-					UUID := uuid
-					go func(financingID, UUID, tempheader, tempinfo string) {
-						p.packModifyInvoiceInfo(financingID, UUID, tempheader, tempinfo, "fast", "modifyFinancinginvoice")
-						wg.Done()
-					}(financingID, UUID, tempheader, tempinfo)
-				}
-			}
-		}
-	}
-	wg.Wait()
-	messages := p.encryptedPool.QueryMessages("modifyFinancinginvoice", "fast")
-	for _, message := range messages {
-		temp, _ := message.(packedModifyInvoiceMessage)
-		err := p.server.VerifyAndUpdateInvoiceInformation(temp.uuid, temp.header, temp.sign, temp.financingID)
-		if err != nil {
-			logs.Errorln("发票信息上链失败:", temp.header, "失败信息为:", err)
-		}
-	}
+func (p *Promoter) modifyInvoiceInfoWhenModifyApplicationWaiter(modifyLength int, wg *sync.WaitGroup) {
 	for {
 		counter := 0
 		uptoChain.ModifyInvoiceWhenMFAMap.Range(func(key, value interface{}) bool {
@@ -758,7 +677,7 @@ func (p *Promoter) modifyFinancingInvoiceInfoHandler(invoices map[string]map[str
 			uptoChain.ModifyInvoiceWhenMFAMapLock.Unlock()
 			return true
 		})
-		if counter == len(messages) {
+		if counter == modifyLength {
 			p.DataApi.ModifyInvoiceWhenFinancingOKChan <- struct{}{}
 			for {
 				flag := 0
@@ -776,213 +695,7 @@ func (p *Promoter) modifyFinancingInvoiceInfoHandler(invoices map[string]map[str
 			break
 		}
 	}
-}
-
-// 处理融资意向申请的修改
-func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandler() {
-	if len(p.DataApi.ModifyFinancingWithSelectedInfosPool) != 0 {
-		logs.Infoln("开始修改融资意向请求信息")
-		var wg sync.WaitGroup
-		finintensWithSelectedInfos := make(map[string]*receive.SelectedInfosAndFinancingApplication, 0)
-		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Lock()
-		for uuid := range p.DataApi.ModifyFinancingWithSelectedInfosPool {
-			finintensWithSelectedInfos[uuid] = p.DataApi.ModifyFinancingWithSelectedInfosPool[uuid]
-			delete(p.DataApi.ModifyFinancingWithSelectedInfosPool, uuid)
-		}
-		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Unlock()
-		financingInfo, Invoices := server.HandleFinancingIntentionAndSelectedInfos(finintensWithSelectedInfos)
-		fmt.Println(Invoices)
-		go p.modifyFinancingInvoiceInfoHandler(Invoices)
-		for UUID := range financingInfo {
-			for header, info := range financingInfo[UUID] {
-				wg.Add(1)
-				tempheader := header
-				tempinfo := info
-				go func(UUID, tempheader, tempinfo string) {
-					p.packFinancingInfo(UUID, tempheader, tempinfo, "fast", "Modifyapplication")
-					wg.Done()
-				}(UUID, tempheader, tempinfo)
-			}
-		}
-
-		wg.Wait()
-		messages := p.encryptedPool.QueryMessages("Modifyapplication", "fast")
-		for _, message := range messages {
-			temp, _ := message.(packedFinancingMessage)
-			err := p.server.UpdateSupplierFinancingApplication(temp.uuid, temp.header, temp.state, temp.cipher, temp.encryptionKey, temp.signed)
-			if err != nil {
-				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
-			}
-		}
-		for {
-			counter := 0
-			uptoChain.ModifyFinancingMap.Range(func(key, value interface{}) bool {
-				uptoChain.ModifyFinancingMapLock.Lock()
-				mapping := value.(map[string]*uptoChain.ResponseMessage)
-				counter += len(mapping)
-				for _, message := range mapping {
-					if message.GetMessage() == "" {
-						counter = 0
-						break
-					}
-				}
-				uptoChain.ModifyFinancingMapLock.Unlock()
-				return true
-			})
-			if counter == len(messages) {
-				p.DataApi.ModifyFinancingOKChan <- struct{}{}
-				for {
-					flag := 0
-					uptoChain.ModifyFinancingMap.Range(func(key, value interface{}) bool {
-						if key != nil {
-							flag++
-							return false
-						}
-						return true
-					})
-					if flag == 0 {
-						break
-					}
-				}
-				break
-			}
-		}
-	}
-}
-
-// 针对发票信息的packInfo
-// 加密后存入缓存池
-func (p *Promoter) packInvoiceInfo(UUID string, header string, info string, poolType string, method string) {
-	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
-	if err != nil {
-		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-	}
-	//info是发票信息的字符串形式，各个参数之间用逗号分割
-	fields := strings.Split(info, ",")
-	temp := packedInvoiceMessage{}
-	//参数11是开票日期，参数8是发票类型，参数14是发票号码
-	temp.uuid = UUID
-	temp.params = fields[11] + "," + fields[8] + "," + fields[14] + "," + string(signed) + "," + ""
-	temp.cipher = cipher
-	temp.encryptionKey = encryptionKey
-	temp.header = header
-	p.encryptedPool.InsertInvoice(temp, method, poolType)
-}
-
-// 针对修改发票信息的packInfo
-func (p *Promoter) packModifyInvoiceInfo(finangcingID, UUID string, header string, info string, poolType string, method string) {
-
-	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
-	if err != nil {
-		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-	}
-	//info是发票信息的字符串形式，各个参数之间用逗号分割
-	// fields := strings.Split(info, ",")
-	temp := packedModifyInvoiceMessage{}
-	//参数11是开票日期，参数8是发票类型，参数14是发票号码
-	temp.uuid = UUID
-	temp.sign = string(signed)
-	// temp.params = fields[11] + "," + fields[8] + "," + fields[14] + "," + string(signed) + "," + ""
-	temp.cipher = cipher
-	temp.encryptionKey = encryptionKey
-	temp.header = header
-	temp.financingID = finangcingID
-	p.encryptedPool.InsertModifyInvoice(temp, method, poolType)
-}
-
-// 针对融资意向的packInfo
-func (p *Promoter) packFinancingInfo(UUID, header, info, poolType, method string) {
-	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
-	if err != nil {
-		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-	}
-	temp := packedFinancingMessage{}
-	fields := strings.Split(info, ",")
-	temp.financingid = fields[9]
-	temp.cipher = cipher
-	temp.encryptionKey = encryptionKey
-	temp.signed = signed
-	temp.header = header
-	temp.uuid = UUID
-	temp.state = "待审批"
-	p.encryptedPool.InsertFinancing(temp, method, poolType)
-}
-
-// 针对历史交易信息的packInfo
-func (p *Promoter) packHistoricalInfos(UUID, header string, infos []string, poolType, method string) {
-	var wg sync.WaitGroup
-	for _, info := range infos {
-		tempinfo := info
-		wg.Add(1)
-		go func(tempinfo string) {
-			fields := strings.Split(tempinfo, ",")
-			tradeYearMonth := fields[7] //交易年月
-			tradeYearMonth = strings.Replace(tradeYearMonth, "[", "", -1)
-			financeId := fields[4]
-			fmt.Println(tradeYearMonth)
-			cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(tempinfo))
-			if err != nil {
-				logs.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
-			}
-			temp := packedHistoricalMessage{}
-			temp.params = tradeYearMonth + "," + financeId + "," + string(signed) + "," + ""
-			temp.cipher = cipher
-			temp.encryptionKey = encryptionKey
-			temp.header = header
-			temp.uuid = UUID
-			p.encryptedPool.InsertHistoricalTrans(temp, method, poolType)
-			wg.Done()
-		}(tempinfo)
-	}
-	wg.Wait()
-}
-
-// 针对入池信息的packInfo
-func (p *Promoter) packPoolInfos(UUID, header string, infos []string, poolType, method string) {
-	var wg sync.WaitGroup
-	for _, info := range infos {
-		tempinfo := info
-		wg.Add(1)
-		go func(header, tempinfo string) {
-			fields := strings.Split(tempinfo, ",")
-			tradeYearMonth := fields[5] //交易年月
-			tradeYearMonth = strings.Replace(tradeYearMonth, "[", "", -1)
-			cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(tempinfo))
-			if err != nil {
-				// logrus.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
-				logs.Fatalln("数据加密失败,此条数据信息为:", header, tempinfo, "失败信息为:", err)
-			}
-			temp := packedPoolMessage{}
-			temp.params = tradeYearMonth + "," + string(signed) + "," + ""
-			temp.cipher = cipher
-			temp.encryptionKey = encryptionKey
-			temp.header = header
-			temp.uuid = UUID
-			p.encryptedPool.InsertPoolData(temp, method, poolType)
-			wg.Done()
-		}(header, tempinfo)
-
-	}
-	wg.Wait()
-}
-
-// 针对回款账户信息的packInfo
-func (p *Promoter) packAccountsInfo(uuid, header, info, poolType, method string) {
-	cipher, encryptionKey, signed, err := p.server.DataEncryption([]byte(info))
-	if err != nil {
-		// logrus.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-		logs.Fatalln("数据加密失败,此条数据信息为:", header, info, "失败信息为:", err)
-	}
-	temp := packedMessage{}
-	temp.cipher = cipher
-	temp.encryptionKey = encryptionKey
-	temp.signed = signed
-	temp.header = header
-	temp.uuid = uuid
-	p.encryptedPool.Insert(temp, method, poolType)
+	wg.Done()
 }
 
 // 写入文件
