@@ -9,7 +9,7 @@ contract SupplierFinancingApplication is Ownable {
     MapStorage private mapStorage;
     using LibString for string;
     TableFactory tf;
-    string constant TABLE_NAME = "t_supplier_financing_application1";
+    string constant TABLE_NAME = "t_supplier_financing_application2";
     // 表名称：t_supplier_financing_application
     // 表主键：id 
     // 表字段：data
@@ -23,11 +23,12 @@ contract SupplierFinancingApplication is Ownable {
     event InsertSupplierFinancingApplication(string id, string hash);
     event UpdateSupplierFinancingApplication(string id, string hash);
     event FinancingApplicationHashNotFound(string customerid, string hash, string tips);
-    
+    //发起融资申请
     function insert(string memory _id, string memory _state, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
         require(_isFinanceidExist(table, _id, _hash), "current financingid or Hash has already exist");
+        require(LibString.equal(_state,"待审批"),"发起的融资意向申请状态不对");
         entry.set("financingid",_id);
         entry.set("data",_data);
         entry.set("key",_key);
@@ -37,16 +38,19 @@ contract SupplierFinancingApplication is Ownable {
         emit InsertSupplierFinancingApplication(_id, _hash);
         return count;
     }
+    //更新融资申请
     function update(string memory _id, string memory _state, string memory _data,string memory _key,string memory _hash) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
         require(_isProcessIdExist(table, _id), "SupplierFinancingApplication select: current financingId not exist");
+        require(checkState(table,_id),"当前融资申请未被驳回");  
+        require(LibString.equal(_state,"待审批"),"发起的融资意向申请状态不对");
         entry.set("financingid",_id);
         entry.set("data",_data);
         entry.set("key",_key);
         entry.set("hash",_hash);
         entry.set("state", _state);
-         Condition condition = table.newCondition();
+        Condition condition = table.newCondition();
         int256 count = table.update(_id, entry,condition);
         if (count == 1){
             emit UpdateSupplierFinancingApplication(_id, _hash);
@@ -72,6 +76,14 @@ contract SupplierFinancingApplication is Ownable {
         Condition condition = table.newCondition();
         _entries = table.select(_id, condition);
         return _entries;
+    }
+    function checkState(Table _table,string memory _id)internal view returns(bool){
+        Condition condition = _table.newCondition();
+        Entries _entries=_table.select(_id,condition);
+        Entry _entry=_entries.get(0);
+        string memory result=_entry.getString("state");
+        string memory flag="驳回";
+        return LibString.equal(result,flag);
     }
     function getDetail(string memory _id) public view returns(string memory _json){
         Entries _entries = select(_id);

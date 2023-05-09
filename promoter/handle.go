@@ -14,28 +14,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// const (
-//
-//	PoolPlanInfos             = "poolPlan"
-//	PoolUsedInfos             = "poolUsed"
-//	HistoricalOrderInfos      = "hisOrder"
-//	HistoricalReceivableInfos = "hisReceivable"
-//	HistoricalSettleInfos     = "hisSettle"
-//	HistoricalUsedInfos       = "hisUsed"
-//
-// )
 const (
 	waitCheck = "待审批"
-	again     = "重新申请"
 )
 
 var logs = logloader.NewLog()
 
 type Promoter struct {
-	server  *server.Server
-	DataApi *receive.FrontEnd
-	monitor *server.Monitor
-	// encryptedPool *Pools
+	server    *server.Server
+	DataApi   *receive.FrontEnd
+	monitor   *server.Monitor
 	loader    *logloader.Loader
 	chaininfo *chainloader.ChainInfo
 }
@@ -44,14 +32,12 @@ func NewPromoter() *Promoter {
 	ser := server.NewServer()
 	api := receive.NewFrontEnd()
 	monitor := server.NewMonitor()
-	// pool := NewPools()
 	lder := logloader.NewLoader()
 	chainld := chainloader.NewChainInfo()
 	return &Promoter{
-		server:  ser,
-		DataApi: api,
-		monitor: monitor,
-		// encryptedPool: pool,
+		server:    ser,
+		DataApi:   api,
+		monitor:   monitor,
 		loader:    lder,
 		chaininfo: chainld,
 	}
@@ -245,7 +231,7 @@ func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandle
 			delete(p.DataApi.ModifyFinancingWithSelectedInfosPool, uuid)
 		}
 		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Unlock()
-		financingInfos, modifyInvoices := p.server.PackedApplicationAndModifyInvoiceInfos(finintensWithSelectedInfos, again)
+		financingInfos, modifyInvoices := p.server.PackedApplicationAndModifyInvoiceInfos(finintensWithSelectedInfos, waitCheck)
 		for _, financingInfo := range financingInfos {
 			err := p.server.UpdateSupplierFinancingApplication(financingInfo.Uuid, financingInfo.Header, financingInfo.State, financingInfo.Cipher, financingInfo.EncryptionKey, financingInfo.Signed)
 			if err != nil {
