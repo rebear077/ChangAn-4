@@ -159,6 +159,7 @@ func (p *Promoter) EnterPoolInfoHandler() {
 
 		}
 		var wg sync.WaitGroup
+		wg.Add(2)
 		go p.enterPoolPlanInfoWaiter(len(poolPlan), &wg)
 		go p.enterPoolUsedInfoWaiter(len(poolUsed), &wg)
 		wg.Wait()

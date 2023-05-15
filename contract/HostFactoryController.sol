@@ -51,13 +51,13 @@ contract HostFactoryController is Ownable{
 //***************************************************************************************************    
 //融资意向  
 //params 包括financingID和state  
-    function issueSupplierFinancingApplication(string _id, string _state, string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = supplierFinancingApplication.insert(_id, _state,_data,_key,_hash);
+    function issueSupplierFinancingApplication(string _id, string _customerID, string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = supplierFinancingApplication.insert(_id, _customerID,_data,_key,_hash);
         
         return count;
     }
-    function updateSupplierFinancingApplication(string _id, string _state, string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = supplierFinancingApplication.update(_id, _state,_data,_key,_hash);
+    function updateSupplierFinancingApplication(string _id, string _customerID, string _data,string _key,string _hash) external onlyOwner returns(int256){
+        int256 count = supplierFinancingApplication.update(_id, _customerID,_data,_key,_hash);
         
         return count;
     }
@@ -140,18 +140,19 @@ contract HostFactoryController is Ownable{
     }
 //********************************************************************************************************
 //查询回款信息
-    function updatePushPaymentAccounts(string _id,string _data,string _key,string _hash) external onlyOwner returns(int256){
-        int256 count = pushPaymentAccounts.update(_id,_data,_key,_hash);
+    function lockPushPaymentAccounts(string _id,string _financeID,string _hash) external onlyOwner returns(int256){
+        int256 count = pushPaymentAccounts.lock(_id,_financeID,_hash);
+        return count;
+    }
+    function updateAndLockAccounts(string  _idAndFinanceID,string  _data,string  _key,string  _newhash,string  _oldhash)external onlyOwner returns(int256){
+        int256 count = pushPaymentAccounts.updateAndLock(_idAndFinanceID,_data,_key,_newhash,_oldhash);
         return count;
     }
     function queryPushPaymentAccountsInList(string _id)public returns(string){
         string memory res=pushPaymentAccounts.getDetail(_id);
         return res;
     }
-    function queryPushPaymentAccountsInJson(string _id)public returns(string){
-        string memory res=pushPaymentAccounts.getDetailInJson(_id);
-        return res;
-    }
+   
     
 //*******************************************************************************************************    
 //查询入池数据之供应商生产计划信息
