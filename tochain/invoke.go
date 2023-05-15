@@ -493,18 +493,18 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 }
 
 // 回款信息
-func invokeUpdatePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
+func invokeUpdateAndLockPushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return
 	}
 	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
-	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updatePushPaymentAccounts", receipt)
+	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updateAndLockAccounts", receipt)
 	if err != nil {
 		log.Printf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines == nil || setedLines.Int64() != 1 {
-		ret, err := parsed.UnpackInput("updatePushPaymentAccounts", common.FromHex(receipt.Input)[4:])
+		ret, err := parsed.UnpackInput("updateAndLockAccounts", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -518,15 +518,15 @@ func invokeUpdatePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
 		packedMessage.message = message
-		CollectionAccountMap.Range(func(key, value interface{}) bool {
+		UpdateAndLockAccountMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
-			CollectionAccountMapLock.Lock()
+			UpdateAndLockAccountMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
-			CollectionAccountMapLock.Unlock()
-			CollectionAccountMap.LoadOrStore(uuid, mapping)
+			UpdateAndLockAccountMapLock.Unlock()
+			UpdateAndLockAccountMap.LoadOrStore(uuid, mapping)
 			return true
 		})
 	} else {
@@ -534,15 +534,69 @@ func invokeUpdatePushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = true
 		packedMessage.message = message
-		CollectionAccountMap.Range(func(key, value interface{}) bool {
+		UpdateAndLockAccountMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
-			CollectionAccountMapLock.Lock()
+			UpdateAndLockAccountMapLock.Lock()
 			mapping := value.(map[string]*ResponseMessage)
 			if _, ok := mapping[receipt.TransactionHash]; ok {
 				mapping[receipt.TransactionHash] = packedMessage
 			}
-			CollectionAccountMapLock.Unlock()
-			CollectionAccountMap.LoadOrStore(uuid, mapping)
+			UpdateAndLockAccountMapLock.Unlock()
+			UpdateAndLockAccountMap.LoadOrStore(uuid, mapping)
+			return true
+		})
+	}
+}
+func invokeLockPaymentAccountsHandler(receipt *types.Receipt, err error) {
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
+	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updateAndLockAccounts", receipt)
+	if err != nil {
+		log.Printf("error when transfer string to int: %v\n", err)
+	}
+	if setedLines == nil || setedLines.Int64() != 1 {
+		ret, err := parsed.UnpackInput("updateAndLockAccounts", common.FromHex(receipt.Input)[4:])
+		if err != nil {
+			fmt.Println(err)
+		}
+		var message string
+		parseRet, ok := ret.([]interface{})
+		if !ok {
+			logs.Fatalln("解析失败")
+		} else {
+			message = parseRet[0].(string) + "," + parseRet[1].(string)
+		}
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = false
+		packedMessage.message = message
+		LockAccountsMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			LockAccountsMapLock.Lock()
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			LockAccountsMapLock.Unlock()
+			LockAccountsMap.LoadOrStore(uuid, mapping)
+			return true
+		})
+	} else {
+		message := "success"
+		packedMessage := new(ResponseMessage)
+		packedMessage.ok = true
+		packedMessage.message = message
+		LockAccountsMap.Range(func(key, value interface{}) bool {
+			uuid := key.(string)
+			LockAccountsMapLock.Lock()
+			mapping := value.(map[string]*ResponseMessage)
+			if _, ok := mapping[receipt.TransactionHash]; ok {
+				mapping[receipt.TransactionHash] = packedMessage
+			}
+			LockAccountsMapLock.Unlock()
+			LockAccountsMap.LoadOrStore(uuid, mapping)
 			return true
 		})
 	}

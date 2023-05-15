@@ -120,8 +120,24 @@ type FinancingIntention struct {
 // }
 
 // 推送回款账户接口
-type CollectionAccount struct {
+type RawAccount struct {
+	Backaccount     string `json:"BackAccount"`
+	Certificateid   string `json:"CertificateId"`
+	Customerid      string `json:"CustomerId"`
+	Corpname        string `json:"CorpName"`
+	Lockremark      string `json:"LockRemark"`
+	Certificatetype string `json:"CertificateType"`
+	Intercustomerid string `json:"InterCustomerId"`
+}
+type UpdateCollectionAccount struct {
+	UUID       string     `json:"-"`
+	OldAccount RawAccount `json:"OldAccount"`
+	NewAccount RawAccount `json:"NewAccount"`
+	FinanceId  string     `json:"FinanceId"`
+}
+type LockAccount struct {
 	UUID            string `json:"-"`
+	FinanceId       string `json:"FinanceId"`
 	Backaccount     string `json:"BackAccount"`
 	Certificateid   string `json:"CertificateId"`
 	Customerid      string `json:"CustomerId"`

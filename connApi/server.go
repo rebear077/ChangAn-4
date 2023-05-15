@@ -25,7 +25,8 @@ type FrontEnd struct {
 	TransactionHistoryPool                  map[string]*TransactionHistory
 	EnterpoolDataPool                       map[string]*EnterpoolData
 	FinancingIntentionWithSelectedInfosPool map[string]*SelectedInfosAndFinancingApplication
-	CollectionAccountPool                   map[string]*CollectionAccount
+	UpdateCollectionAccountPool             map[string]*UpdateCollectionAccount
+	LockAccountPool                         map[string]*LockAccount
 	ModifyFinancingWithSelectedInfosPool    map[string]*SelectedInfosAndFinancingApplication
 
 	IssueInvoicemutex                         sync.RWMutex
@@ -33,7 +34,8 @@ type FrontEnd struct {
 	EnterpoolDatamutex                        sync.RWMutex
 	FinancingIntentionWithSelectedInfosMutex  sync.RWMutex
 	ModifyFinancingWithSelectedInfosPoolMutex sync.RWMutex
-	CollectionAccountmutex                    sync.RWMutex
+	UpdateCollectionAccountPoolMutex          sync.RWMutex
+	LockAccountPoolMutex                      sync.RWMutex
 
 	IssueInvoiceOKChan                  chan interface{}
 	IssueHistoryUsedInfoOKChan          chan interface{}
@@ -42,7 +44,8 @@ type FrontEnd struct {
 	IssueHistoricalReceivableInfoOKChan chan interface{}
 	IssueEnterPoolPlanOKChan            chan interface{}
 	IssueEnterPoolUsedOKChan            chan interface{}
-	ModifyAccountOKChan                 chan interface{}
+	UpdateAndLockAccountOKChan          chan interface{}
+	LockAccountOKChan                   chan interface{}
 	//提交融资意向时使用
 	FinancingIntentionIssueOKChan    chan interface{}
 	ModifyFinancingOKChan            chan interface{}
@@ -66,7 +69,8 @@ func NewFrontEnd() *FrontEnd {
 		TransactionHistoryPool:                  make(map[string]*TransactionHistory, 0),
 		EnterpoolDataPool:                       make(map[string]*EnterpoolData, 0),
 		FinancingIntentionWithSelectedInfosPool: make(map[string]*SelectedInfosAndFinancingApplication, 0),
-		CollectionAccountPool:                   make(map[string]*CollectionAccount, 0),
+		UpdateCollectionAccountPool:             make(map[string]*UpdateCollectionAccount, 0),
+		LockAccountPool:                         make(map[string]*LockAccount, 0),
 		ModifyFinancingWithSelectedInfosPool:    make(map[string]*SelectedInfosAndFinancingApplication, 0),
 		IssueInvoiceOKChan:                      make(chan interface{}),
 		IssueHistoryUsedInfoOKChan:              make(chan interface{}),
@@ -75,7 +79,8 @@ func NewFrontEnd() *FrontEnd {
 		IssueHistoricalReceivableInfoOKChan:     make(chan interface{}),
 		IssueEnterPoolPlanOKChan:                make(chan interface{}),
 		IssueEnterPoolUsedOKChan:                make(chan interface{}),
-		ModifyAccountOKChan:                     make(chan interface{}),
+		UpdateAndLockAccountOKChan:              make(chan interface{}),
+		LockAccountOKChan:                       make(chan interface{}),
 		FinancingIntentionIssueOKChan:           make(chan interface{}),
 		ModifyFinancingOKChan:                   make(chan interface{}),
 		ModifyInvoiceOKChan:                     make(chan interface{}),
@@ -574,8 +579,8 @@ func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.R
 	}
 }
 
-// 推送回款账户接口
-func (f *FrontEnd) HandleCollectionAccount(writer http.ResponseWriter, request *http.Request) {
+// 更新并锁定回款账户接口
+func (f *FrontEnd) HandleUpdateCollectionAccount(writer http.ResponseWriter, request *http.Request) {
 	pubKey, err := ioutil.ReadFile("./connApi/confs/public.pem")
 	if err != nil {
 		logs.Info(err)
@@ -595,7 +600,7 @@ func (f *FrontEnd) HandleCollectionAccount(writer http.ResponseWriter, request *
 		}
 		if res {
 			if checkTimeStamp(formatTimeStr) {
-				var messages *CollectionAccount
+				var messages *UpdateCollectionAccount
 				if json.NewDecoder(request.Body).Decode(&messages) != nil {
 					jsonData := wrongJsonType()
 					fmt.Fprint(writer, jsonData)
@@ -605,15 +610,15 @@ func (f *FrontEnd) HandleCollectionAccount(writer http.ResponseWriter, request *
 						logrus.Fatalf("newChannelMessage error: %v", err)
 					}
 					messages.UUID = id.String()
-					f.CollectionAccountmutex.Lock()
-					f.CollectionAccountPool[id.String()] = messages
-					f.CollectionAccountmutex.Unlock()
-					<-f.ModifyAccountOKChan
+					f.UpdateCollectionAccountPoolMutex.Lock()
+					f.UpdateCollectionAccountPool[id.String()] = messages
+					f.UpdateCollectionAccountPoolMutex.Unlock()
+					<-f.UpdateAndLockAccountOKChan
 					jsonData := NewPackedResponse()
-					uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+					uptoChain.UpdateAndLockAccountMap.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
-								uptoChain.CollectionAccountMapLock.Lock()
+								uptoChain.UpdateAndLockAccountMapLock.Lock()
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
 									if message.GetWhetherOK() {
@@ -622,9 +627,79 @@ func (f *FrontEnd) HandleCollectionAccount(writer http.ResponseWriter, request *
 										jsonData.Fail[txHash] = *message
 									}
 								}
-								uptoChain.CollectionAccountMapLock.Unlock()
+								uptoChain.UpdateAndLockAccountMapLock.Unlock()
 							}
-							uptoChain.CollectionAccountMap.Delete(uuid)
+							uptoChain.UpdateAndLockAccountMap.Delete(uuid)
+						}
+						return true
+					})
+					fmt.Fprint(writer, jsonData)
+				}
+			} else {
+				jsonData := timeExceeded()
+				fmt.Fprint(writer, jsonData)
+			}
+		} else {
+			jsonData := verySignatureFailed()
+			fmt.Fprint(writer, jsonData)
+		}
+	} else {
+		jsonData := wrongVerifyMethod()
+		fmt.Fprint(writer, jsonData)
+	}
+}
+
+// 锁定回款账户接口
+func (f *FrontEnd) HandleLockAccount(writer http.ResponseWriter, request *http.Request) {
+	pubKey, err := ioutil.ReadFile("./connApi/confs/public.pem")
+	if err != nil {
+		logs.Info(err)
+	}
+	request.Header.Set("Connection", "close")
+	if request.Header.Get("verify") == "SHA256withRSAVerify" {
+		cipertext := request.Header.Get("apisign")
+		appid := request.Header.Get("appid")
+		//时间戳处理
+		timestamp := request.Header.Get("timestamp")
+		formatTimeStr := convertimeStamp(timestamp)
+		sign := request.Header.Get("sign")
+		sourcedata := appid + "&" + timestamp + "&" + sign
+		res, err := rsaVerySignWithSha256([]byte(sourcedata), cipertext, pubKey)
+		if err != nil {
+			logs.Info(err)
+		}
+		if res {
+			if checkTimeStamp(formatTimeStr) {
+				var messages *LockAccount
+				if json.NewDecoder(request.Body).Decode(&messages) != nil {
+					jsonData := wrongJsonType()
+					fmt.Fprint(writer, jsonData)
+				} else {
+					id, err := uuid.NewUUID()
+					if err != nil {
+						logrus.Fatalf("newChannelMessage error: %v", err)
+					}
+					messages.UUID = id.String()
+					f.LockAccountPoolMutex.Lock()
+					f.LockAccountPool[id.String()] = messages
+					f.LockAccountPoolMutex.Unlock()
+					<-f.LockAccountOKChan
+					jsonData := NewPackedResponse()
+					uptoChain.LockAccountsMap.Range(func(key, value interface{}) bool {
+						if uuid, ok := key.(string); ok {
+							if uuid == id.String() {
+								uptoChain.LockAccountsMapLock.Lock()
+								mapping := value.(map[string]*uptoChain.ResponseMessage)
+								for txHash, message := range mapping {
+									if message.GetWhetherOK() {
+										jsonData.Success[txHash] = *message
+									} else {
+										jsonData.Fail[txHash] = *message
+									}
+								}
+								uptoChain.LockAccountsMapLock.Unlock()
+							}
+							uptoChain.LockAccountsMap.Delete(uuid)
 						}
 						return true
 					})

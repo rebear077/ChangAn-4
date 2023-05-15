@@ -147,7 +147,23 @@ func (s *Server) PackedTradeData_EnterPoolInfo(enterPool map[string]*receive.Ent
 }
 
 // 打包加密贸易数据-回款账户信息
-func (s *Server) PackedTradeData_AccountInfo(accounts map[string]*receive.CollectionAccount) []packedAccountMessage {
+func (s *Server) PackedTradeData_UpdateAccountInfo(accounts map[string]*receive.UpdateCollectionAccount) []packedUpdateAccountMessage {
+	collectionUpdateAccounts := make([]packedUpdateAccountMessage, 0)
+	for uuid, account := range accounts {
+		collectionAccount := packedUpdateAccountMessage{}
+		collectionAccount.Header = account.NewAccount.Customerid
+		tempStr := account.Backaccount + "," + account.Certificateid + "," + account.Customerid + "," + account.Corpname + "," + account.Lockremark + "," + account.Certificatetype + "," + account.Intercustomerid
+		cipher, encryptionKey, signed, err := s.DataEncryption([]byte(tempStr))
+		checkError(err)
+		collectionAccount.Cipher = cipher
+		collectionAccount.EncryptionKey = encryptionKey
+		collectionAccount.Signed = signed
+		collectionAccount.Uuid = uuid
+		collectionAccounts = append(collectionAccounts, collectionAccount)
+	}
+	return collectionAccounts
+}
+func (s *Server) PackedTradeData_LockAccountInfo(accounts map[string]*receive.CollectionAccount) []packedAccountMessage {
 	collectionAccounts := make([]packedAccountMessage, 0)
 	for uuid, account := range accounts {
 		collectionAccount := packedAccountMessage{}

@@ -22,7 +22,15 @@ type packedPoolMessage struct {
 	Cipher        []byte
 	EncryptionKey []byte
 }
-type packedAccountMessage struct {
+type packedUpdateAccountMessage struct {
+	Uuid          string
+	Header        string
+	Cipher        []byte
+	EncryptionKey []byte
+	OldHash       []byte
+	NewHash       []byte
+}
+type packedLockAccountMessage struct {
 	Uuid          string
 	Header        string
 	Cipher        []byte

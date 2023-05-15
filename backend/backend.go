@@ -217,8 +217,16 @@ func (s *Server) UpdateSupplierFinancingApplication(UUID, id, state string, ciph
 }
 
 // 回款信息
-func (s *Server) UpdatePushPaymentAccount(UUID, id string, cipher, encryptionKey, signed []byte) error {
-	err := s.ctr.UpdatePushPaymentAccounts(UUID, id, string(cipher), string(encryptionKey), string(signed))
+func (s *Server) UpdateAndLockPushPaymentAccounts(UUID, idAndFinanceID string, cipher, encryptionKey, newHash, oldHash []byte) error {
+	err := s.ctr.UpdateAndLockPushPaymentAccounts(UUID, idAndFinanceID, string(cipher), string(encryptionKey), string(newHash), string(oldHash))
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+func (s *Server) LockPaymentAccounts(UUID, id, financeID, hash string) error {
+	err := s.ctr.LockPaymentAccounts(UUID, id, financeID, hash)
 	if err != nil {
 		return err
 	} else {

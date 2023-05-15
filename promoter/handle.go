@@ -168,7 +168,7 @@ func (p *Promoter) EnterPoolInfoHandler() {
 }
 
 // 处理回款账户信息
-func (p *Promoter) PushPaymentAccountsInfoHandler() {
+func (p *Promoter) UpdatePushPaymentAccountsInfoHandler() {
 	if len(p.DataApi.CollectionAccountPool) != 0 {
 		logs.Infoln("开始同步回款信息")
 		logrus.Infoln("开始同步回款信息")
@@ -181,7 +181,28 @@ func (p *Promoter) PushPaymentAccountsInfoHandler() {
 		p.DataApi.CollectionAccountmutex.Unlock()
 		accounts := p.server.PackedTradeData_AccountInfo(payinfos)
 		for _, account := range accounts {
-			err := p.server.UpdatePushPaymentAccount(account.Uuid, account.Header, account.Cipher, account.EncryptionKey, account.Signed)
+			err := p.server.UpdateAndLockPushPaymentAccounts(account.Uuid, account.Header, account.Cipher, account.EncryptionKey, account.Signed)
+			if err != nil {
+				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
+			}
+		}
+		p.accountsInfoWaiter(len(accounts))
+	}
+}
+func (p *Promoter) LockPushPaymentAccountsInfoHandler() {
+	if len(p.DataApi.CollectionAccountPool) != 0 {
+		logs.Infoln("开始同步回款信息")
+		logrus.Infoln("开始同步回款信息")
+		payinfos := make(map[string]*receive.CollectionAccount, 0)
+		p.DataApi.CollectionAccountmutex.Lock()
+		for uuid := range p.DataApi.CollectionAccountPool {
+			payinfos[uuid] = p.DataApi.CollectionAccountPool[uuid]
+			delete(p.DataApi.CollectionAccountPool, uuid)
+		}
+		p.DataApi.CollectionAccountmutex.Unlock()
+		accounts := p.server.PackedTradeData_AccountInfo(payinfos)
+		for _, account := range accounts {
+			err := p.server.UpdateAndLockPushPaymentAccounts(account.Uuid, account.Header, account.Cipher, account.EncryptionKey, account.Signed)
 			if err != nil {
 				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
 			}
