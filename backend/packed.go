@@ -148,26 +148,32 @@ func (s *Server) PackedTradeData_EnterPoolInfo(enterPool map[string]*receive.Ent
 
 // 打包加密贸易数据-回款账户信息
 func (s *Server) PackedTradeData_UpdateAccountInfo(accounts map[string]*receive.UpdateCollectionAccount) []packedUpdateAccountMessage {
-	collectionUpdateAccounts := make([]packedUpdateAccountMessage, 0)
+	collectionAccounts := make([]packedUpdateAccountMessage, 0)
 	for uuid, account := range accounts {
 		collectionAccount := packedUpdateAccountMessage{}
 		collectionAccount.Header = account.NewAccount.Customerid
-		tempStr := account.Backaccount + "," + account.Certificateid + "," + account.Customerid + "," + account.Corpname + "," + account.Lockremark + "," + account.Certificatetype + "," + account.Intercustomerid
-		cipher, encryptionKey, signed, err := s.DataEncryption([]byte(tempStr))
+		collectionAccount.FinanceID = account.FinanceId
+		tempNewStr := account.NewAccount.Backaccount + "," + account.NewAccount.Certificateid + "," + account.NewAccount.Customerid + "," + account.NewAccount.Corpname + "," + account.NewAccount.Lockremark + "," + account.NewAccount.Certificatetype + "," + account.NewAccount.Intercustomerid
+		cipher, encryptionKey, newHash, err := s.DataEncryption([]byte(tempNewStr))
 		checkError(err)
 		collectionAccount.Cipher = cipher
 		collectionAccount.EncryptionKey = encryptionKey
-		collectionAccount.Signed = signed
+		collectionAccount.NewHash = newHash
 		collectionAccount.Uuid = uuid
+		tempOldStr := account.OldAccount.Backaccount + "," + account.OldAccount.Certificateid + "," + account.OldAccount.Customerid + "," + account.OldAccount.Corpname + "," + account.OldAccount.Lockremark + "," + account.OldAccount.Certificatetype + "," + account.OldAccount.Intercustomerid
+		_, _, oldHash, err := s.DataEncryption([]byte(tempOldStr))
+		checkError(err)
+		collectionAccount.OldHash = oldHash
 		collectionAccounts = append(collectionAccounts, collectionAccount)
 	}
 	return collectionAccounts
 }
-func (s *Server) PackedTradeData_LockAccountInfo(accounts map[string]*receive.CollectionAccount) []packedAccountMessage {
-	collectionAccounts := make([]packedAccountMessage, 0)
+func (s *Server) PackedTradeData_LockAccountInfo(accounts map[string]*receive.LockAccount) []packedLockAccountMessage {
+	collectionAccounts := make([]packedLockAccountMessage, 0)
 	for uuid, account := range accounts {
-		collectionAccount := packedAccountMessage{}
+		collectionAccount := packedLockAccountMessage{}
 		collectionAccount.Header = account.Customerid
+		collectionAccount.FinanceID = account.FinanceId
 		tempStr := account.Backaccount + "," + account.Certificateid + "," + account.Customerid + "," + account.Corpname + "," + account.Lockremark + "," + account.Certificatetype + "," + account.Intercustomerid
 		cipher, encryptionKey, signed, err := s.DataEncryption([]byte(tempStr))
 		checkError(err)
@@ -189,6 +195,7 @@ func (s *Server) PackedApplicationAndModifyInvoiceInfos(applications map[string]
 		tempApplicationStr := application.FinancingApplication.Custcdlinkposition + "," + application.FinancingApplication.Custcdlinkname + "," + application.FinancingApplication.Certificateid + "," + application.FinancingApplication.Corpname + "," + application.FinancingApplication.Remark + "," + application.FinancingApplication.Bankcontact + "," + application.FinancingApplication.Banklinkname + "," + application.FinancingApplication.Custcdcontact + "," + application.FinancingApplication.Customerid + "," + application.FinancingApplication.Financeid + "," + application.FinancingApplication.Cooperationyears + "," + application.FinancingApplication.Certificatetype + "," + application.FinancingApplication.Intercustomerid
 		cipher, encryptionKey, signed, err := s.DataEncryption([]byte(tempApplicationStr))
 		checkError(err)
+		financingApplication.CustomerID = application.FinancingApplication.Customerid
 		financingApplication.Cipher = cipher
 		financingApplication.EncryptionKey = encryptionKey
 		financingApplication.Uuid = uuid

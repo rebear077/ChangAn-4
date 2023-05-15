@@ -53,7 +53,8 @@ func (p *Promoter) Start() {
 		if p.monitor.VerifyChainStatus() {
 			p.InvoiceInfoHandler()
 			p.HistoricalInfoHandler()
-			p.PushPaymentAccountsInfoHandler()
+			p.UpdatePushPaymentAccountsInfoHandler()
+			p.LockPushPaymentAccountsInfoHandler()
 			p.EnterPoolInfoHandler()
 			p.FinancingApplicationInfoWithSelectedInfosHandler()
 			p.ModifySupplierFinancingApplicationInfoWithSelectedInfosHandler()
@@ -169,45 +170,45 @@ func (p *Promoter) EnterPoolInfoHandler() {
 
 // 处理回款账户信息
 func (p *Promoter) UpdatePushPaymentAccountsInfoHandler() {
-	if len(p.DataApi.CollectionAccountPool) != 0 {
+	if len(p.DataApi.UpdateCollectionAccountPool) != 0 {
 		logs.Infoln("开始同步回款信息")
 		logrus.Infoln("开始同步回款信息")
-		payinfos := make(map[string]*receive.CollectionAccount, 0)
-		p.DataApi.CollectionAccountmutex.Lock()
-		for uuid := range p.DataApi.CollectionAccountPool {
-			payinfos[uuid] = p.DataApi.CollectionAccountPool[uuid]
-			delete(p.DataApi.CollectionAccountPool, uuid)
+		payinfos := make(map[string]*receive.UpdateCollectionAccount, 0)
+		p.DataApi.UpdateCollectionAccountPoolMutex.Lock()
+		for uuid := range p.DataApi.UpdateCollectionAccountPool {
+			payinfos[uuid] = p.DataApi.UpdateCollectionAccountPool[uuid]
+			delete(p.DataApi.UpdateCollectionAccountPool, uuid)
 		}
-		p.DataApi.CollectionAccountmutex.Unlock()
-		accounts := p.server.PackedTradeData_AccountInfo(payinfos)
+		p.DataApi.UpdateCollectionAccountPoolMutex.Unlock()
+		accounts := p.server.PackedTradeData_UpdateAccountInfo(payinfos)
 		for _, account := range accounts {
-			err := p.server.UpdateAndLockPushPaymentAccounts(account.Uuid, account.Header, account.Cipher, account.EncryptionKey, account.Signed)
+			err := p.server.UpdateAndLockPushPaymentAccounts(account.Uuid, account.Header+","+account.FinanceID, account.Cipher, account.EncryptionKey, account.NewHash, account.OldHash)
 			if err != nil {
 				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
 			}
 		}
-		p.accountsInfoWaiter(len(accounts))
+		p.accountsUpdateInfoWaiter(len(accounts))
 	}
 }
 func (p *Promoter) LockPushPaymentAccountsInfoHandler() {
-	if len(p.DataApi.CollectionAccountPool) != 0 {
+	if len(p.DataApi.LockAccountPool) != 0 {
 		logs.Infoln("开始同步回款信息")
 		logrus.Infoln("开始同步回款信息")
-		payinfos := make(map[string]*receive.CollectionAccount, 0)
-		p.DataApi.CollectionAccountmutex.Lock()
-		for uuid := range p.DataApi.CollectionAccountPool {
-			payinfos[uuid] = p.DataApi.CollectionAccountPool[uuid]
-			delete(p.DataApi.CollectionAccountPool, uuid)
+		payinfos := make(map[string]*receive.LockAccount, 0)
+		p.DataApi.LockAccountPoolMutex.Lock()
+		for uuid := range p.DataApi.LockAccountPool {
+			payinfos[uuid] = p.DataApi.LockAccountPool[uuid]
+			delete(p.DataApi.LockAccountPool, uuid)
 		}
-		p.DataApi.CollectionAccountmutex.Unlock()
-		accounts := p.server.PackedTradeData_AccountInfo(payinfos)
+		p.DataApi.LockAccountPoolMutex.Unlock()
+		accounts := p.server.PackedTradeData_LockAccountInfo(payinfos)
 		for _, account := range accounts {
-			err := p.server.UpdateAndLockPushPaymentAccounts(account.Uuid, account.Header, account.Cipher, account.EncryptionKey, account.Signed)
+			err := p.server.LockPaymentAccounts(account.Uuid, account.Header, account.FinanceID, string(account.Signed))
 			if err != nil {
 				logs.Errorln("回款信息上链失败,", "失败信息为:", err)
 			}
 		}
-		p.accountsInfoWaiter(len(accounts))
+		p.accountsLockInfoWaiter(len(accounts))
 	}
 }
 
@@ -224,7 +225,7 @@ func (p *Promoter) FinancingApplicationInfoWithSelectedInfosHandler() {
 		p.DataApi.FinancingIntentionWithSelectedInfosMutex.Unlock()
 		financingInfos, modifyInvoices := p.server.PackedApplicationAndModifyInvoiceInfos(finintensWithSelectedInfos, waitCheck)
 		for _, application := range financingInfos {
-			err := p.server.IssueSupplierFinancingApplication(application.Uuid, application.Header, application.State, application.Cipher, application.EncryptionKey, application.Signed)
+			err := p.server.IssueSupplierFinancingApplication(application.Uuid, application.Header, application.CustomerID, application.Cipher, application.EncryptionKey, application.Signed)
 			if err != nil {
 				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
 			}
@@ -255,7 +256,7 @@ func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandle
 		p.DataApi.ModifyFinancingWithSelectedInfosPoolMutex.Unlock()
 		financingInfos, modifyInvoices := p.server.PackedApplicationAndModifyInvoiceInfos(finintensWithSelectedInfos, waitCheck)
 		for _, financingInfo := range financingInfos {
-			err := p.server.UpdateSupplierFinancingApplication(financingInfo.Uuid, financingInfo.Header, financingInfo.State, financingInfo.Cipher, financingInfo.EncryptionKey, financingInfo.Signed)
+			err := p.server.UpdateSupplierFinancingApplication(financingInfo.Uuid, financingInfo.Header, financingInfo.CustomerID, financingInfo.Cipher, financingInfo.EncryptionKey, financingInfo.Signed)
 			if err != nil {
 				logs.Errorln("融资意向请求上链失败,", "失败信息为:", err)
 			}

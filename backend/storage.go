@@ -24,6 +24,7 @@ type packedPoolMessage struct {
 }
 type packedUpdateAccountMessage struct {
 	Uuid          string
+	FinanceID     string
 	Header        string
 	Cipher        []byte
 	EncryptionKey []byte
@@ -32,6 +33,7 @@ type packedUpdateAccountMessage struct {
 }
 type packedLockAccountMessage struct {
 	Uuid          string
+	FinanceID     string
 	Header        string
 	Cipher        []byte
 	EncryptionKey []byte
@@ -41,6 +43,7 @@ type packedFinancingMessage struct {
 	Uuid          string
 	Header        string
 	Financingid   string
+	CustomerID    string
 	State         string
 	Cipher        []byte
 	EncryptionKey []byte

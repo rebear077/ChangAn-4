@@ -258,11 +258,11 @@ func (p *Promoter) enterPoolUsedInfoWaiter(usedLength int, wg *sync.WaitGroup) {
 	}
 	wg.Done()
 }
-func (p *Promoter) accountsInfoWaiter(accountsLength int) {
+func (p *Promoter) accountsUpdateInfoWaiter(accountsLength int) {
 	for {
 		counter := 0
-		uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
-			uptoChain.CollectionAccountMapLock.Lock()
+		uptoChain.UpdateAndLockAccountMap.Range(func(key, value interface{}) bool {
+			uptoChain.UpdateAndLockAccountMapLock.Lock()
 			mapping := value.(map[string]*uptoChain.ResponseMessage)
 			counter += len(mapping)
 			for _, message := range mapping {
@@ -271,14 +271,49 @@ func (p *Promoter) accountsInfoWaiter(accountsLength int) {
 					break
 				}
 			}
-			uptoChain.CollectionAccountMapLock.Unlock()
+			uptoChain.UpdateAndLockAccountMapLock.Unlock()
 			return true
 		})
 		if counter == accountsLength {
-			p.DataApi.ModifyAccountOKChan <- struct{}{}
+			p.DataApi.UpdateAndLockAccountOKChan <- struct{}{}
 			for {
 				flag := 0
-				uptoChain.CollectionAccountMap.Range(func(key, value interface{}) bool {
+				uptoChain.UpdateAndLockAccountMap.Range(func(key, value interface{}) bool {
+					if key != nil {
+						flag++
+						return false
+					}
+					return true
+				})
+				if flag == 0 {
+					break
+				}
+			}
+			break
+		}
+	}
+}
+func (p *Promoter) accountsLockInfoWaiter(accountsLength int) {
+	for {
+		counter := 0
+		uptoChain.LockAccountsMap.Range(func(key, value interface{}) bool {
+			uptoChain.LockAccountsMapLock.Lock()
+			mapping := value.(map[string]*uptoChain.ResponseMessage)
+			counter += len(mapping)
+			for _, message := range mapping {
+				if message.GetMessage() == "" {
+					counter = 0
+					break
+				}
+			}
+			uptoChain.LockAccountsMapLock.Unlock()
+			return true
+		})
+		if counter == accountsLength {
+			p.DataApi.LockAccountOKChan <- struct{}{}
+			for {
+				flag := 0
+				uptoChain.LockAccountsMap.Range(func(key, value interface{}) bool {
 					if key != nil {
 						flag++
 						return false
