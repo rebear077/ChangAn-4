@@ -127,7 +127,7 @@ func (s *Server) PackedTradeData_EnterPoolInfo(enterPool map[string]*receive.Ent
 
 		}
 		usedInfo := packedPoolMessage{}
-		for _, used := range poolInfos.Providerusedinfos {
+		for _, used := range poolInfos.UsedInfos {
 			if used.Tradeyearmonth != "" {
 				usedStr := used.Tradeyearmonth + "," + used.Usedamount + "," + used.Currency
 				cipher, encryptionKey, signed, err := s.DataEncryption([]byte(base + "," + usedStr))

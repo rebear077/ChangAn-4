@@ -12,18 +12,18 @@ type InvoiceInformation struct {
 }
 
 type Invoiceinfos struct {
-	Invoicenotaxamt string `json:"InvoiceNotaxAmt"`
-	Invoiceccy      string `json:"InvoiceCcy"`
-	Sellername      string `json:"SellerName"`
-	Invoicetype     string `json:"InvoiceType"`
-	Buyername       string `json:"BuyerName"`
-	Buyerusccode    string `json:"BuyerUsccode"`
-	Invoicedate     string `json:"InvoiceDate"`
-	Sellerusccode   string `json:"SellerUsccode"`
-	Invoicecode     string `json:"InvoiceCode"`
-	Invoicenum      string `json:"InvoiceNum"`
-	Checkcode       string `json:"CheckCode"`
-	Invoiceamt      string `json:"InvoiceAmt"`
+	Invoicenotaxamt string `json:"invoiceNotaxAmt"`
+	Invoiceccy      string `json:"invoiceCcy"`
+	Sellername      string `json:"sellerName"`
+	Invoicetype     string `json:"invoiceType"`
+	Buyername       string `json:"buyerName"`
+	Buyerusccode    string `json:"buyerUsccode"`
+	Invoicedate     string `json:"invoiceDate"`
+	Sellerusccode   string `json:"sellerUsccode"`
+	Invoicecode     string `json:"invoiceCode"`
+	Invoicenum      string `json:"invoiceNum"`
+	Checkcode       string `json:"checkCode"`
+	Invoiceamt      string `json:"invoiceAmt"`
 }
 
 // 推送历史交易信息接口
@@ -43,162 +43,116 @@ type TransactionHistory struct {
 }
 
 type Usedinfos struct {
-	Tradeyearmonth string `json:"TradeYearMonth"`
-	Usedamount     string `json:"UsedAmount"`
-	Ccy            string `json:"Ccy"`
+	Tradeyearmonth string `json:"tradeYearMonth"`
+	Usedamount     string `json:"usedAmount"`
+	Ccy            string `json:"ccy"`
 }
 type Settleinfos struct {
-	Tradeyearmonth string `json:"TradeYearMonth"`
-	Settleamount   string `json:"SettleAmount"`
-	Ccy            string `json:"Ccy"`
+	Tradeyearmonth string `json:"tradeYearMonth"`
+	Settleamount   string `json:"settleAmount"`
+	Ccy            string `json:"ccy"`
 }
 type Orderinfos struct {
-	Tradeyearmonth string `json:"TradeYearMonth"`
-	Orderamount    string `json:"OrderAmount"`
-	Ccy            string `json:"Ccy"`
+	Tradeyearmonth string `json:"tradeYearMonth"`
+	Orderamount    string `json:"orderAmount"`
+	Ccy            string `json:"ccy"`
 }
 type Receivableinfos struct {
-	Tradeyearmonth   string `json:"TradeYearMonth"`
-	Receivableamount string `json:"ReceivableAmount"`
-	Ccy              string `json:"Ccy"`
+	Tradeyearmonth   string `json:"tradeYearMonth"`
+	Receivableamount string `json:"receivableAmount"`
+	Ccy              string `json:"ccy"`
 }
 
 // 推送入池数据接口
 type EnterpoolData struct {
-	UUID              string              `json:"-"`
-	Datetimepoint     string              `json:"dateTimePoint"`
-	Ccy               string              `json:"ccy"`
-	Customerid        string              `json:"customerId"`
-	Intercustomerid   string              `json:"interCustomerId"`
-	Receivablebalance string              `json:"receivableBalance"`
-	Planinfos         []Planinfos         `json:"planInfos"`
-	Providerusedinfos []Providerusedinfos `json:"ProviderUsedInfos"`
+	UUID              string      `json:"-"`
+	Datetimepoint     string      `json:"dateTimePoint"`
+	Ccy               string      `json:"ccy"`
+	Customerid        string      `json:"customerId"`
+	Intercustomerid   string      `json:"interCustomerId"`
+	Receivablebalance string      `json:"receivableBalance"`
+	Planinfos         []Planinfos `json:"planInfos"`
+	UsedInfos         []UsedInfos `json:"usedInfos"`
 }
 
 type Planinfos struct {
-	Tradeyearmonth string `json:"TradeYearMonth"`
-	Planamount     string `json:"PlanAmount"`
-	Currency       string `json:"Currency"`
+	Tradeyearmonth string `json:"tradeYearMonth"`
+	Planamount     string `json:"planAmount"`
+	Currency       string `json:"currency"`
 }
-type Providerusedinfos struct {
-	Tradeyearmonth string `json:"TradeYearMonth"`
-	Usedamount     string `json:"UsedAmount"`
-	Currency       string `json:"Currency"`
+type UsedInfos struct {
+	Tradeyearmonth string `json:"tradeYearMonth"`
+	Usedamount     string `json:"usedAmount"`
+	Currency       string `json:"currency"`
 }
 
 // 提交融资意向接口
 type FinancingIntention struct {
-	Custcdlinkposition string `json:"CustcdLinkPosition"`
-	Custcdlinkname     string `json:"CustcdLinkName"`
-	Certificateid      string `json:"CertificateId"`
-	Corpname           string `json:"CorpName"`
-	Remark             string `json:"Remark"`
-	Bankcontact        string `json:"BankContact"`
-	Banklinkname       string `json:"BankLinkName"`
-	Custcdcontact      string `json:"CustcdContact"`
-	Customerid         string `json:"CustomerId"`
-	Financeid          string `json:"FinanceId"`
-	Cooperationyears   string `json:"CooperationYears"`
-	Certificatetype    string `json:"CertificateType"`
-	Intercustomerid    string `json:"InterCustomerId"`
+	Custcdlinkposition string `json:"custcdLinkPosition"`
+	Custcdlinkname     string `json:"custcdLinkName"`
+	Certificateid      string `json:"certificateId"`
+	Corpname           string `json:"corpName"`
+	Remark             string `json:"remark"`
+	Bankcontact        string `json:"bankContact"`
+	Banklinkname       string `json:"bankLinkName"`
+	Custcdcontact      string `json:"custcdContact"`
+	Customerid         string `json:"customerId"`
+	Financeid          string `json:"financeId"`
+	Cooperationyears   string `json:"cooperationYears"`
+	Certificatetype    string `json:"certificateType"`
+	Intercustomerid    string `json:"interCustomerId"`
 }
-
-// type FinancingIntention []struct {
-// 	Custcdlinkposition string `json:"CustcdLinkPosition"`
-// 	Custcdlinkname     string `json:"CustcdLinkName"`
-// 	Certificateid      string `json:"CertificateId"`
-// 	Corpname           string `json:"CorpName"`
-// 	Remark             string `json:"Remark"`
-// 	Bankcontact        string `json:"BankContact"`
-// 	Banklinkname       string `json:"BankLinkName"`
-// 	Custcdcontact      string `json:"CustcdContact"`
-// 	Customerid         string `json:"CustomerId"`
-// 	Financeid          string `json:"FinanceId"`
-// 	Cooperationyears   string `json:"CooperationYears"`
-// 	Certificatetype    string `json:"CertificateType"`
-// 	Intercustomerid    string `json:"InterCustomerId"`
-// }
 
 // 推送回款账户接口
 type RawAccount struct {
-	Backaccount     string `json:"BackAccount"`
-	Certificateid   string `json:"CertificateId"`
-	Customerid      string `json:"CustomerId"`
-	Corpname        string `json:"CorpName"`
-	Lockremark      string `json:"LockRemark"`
-	Certificatetype string `json:"CertificateType"`
-	Intercustomerid string `json:"InterCustomerId"`
+	Backaccount     string `json:"backAccount"`
+	Certificateid   string `json:"certificateId"`
+	Customerid      string `json:"customerId"`
+	Corpname        string `json:"corpName"`
+	Lockremark      string `json:"lockRemark"`
+	Certificatetype string `json:"certificateType"`
+	Intercustomerid string `json:"interCustomerId"`
 }
 type UpdateCollectionAccount struct {
 	UUID       string     `json:"-"`
-	OldAccount RawAccount `json:"OldAccount"`
-	NewAccount RawAccount `json:"NewAccount"`
-	FinanceId  string     `json:"FinanceId"`
+	OldAccount RawAccount `json:"oldAccount"`
+	NewAccount RawAccount `json:"newAccount"`
+	FinanceId  string     `json:"financeId"`
 }
 type LockAccount struct {
 	UUID            string `json:"-"`
-	FinanceId       string `json:"FinanceId"`
-	Backaccount     string `json:"BackAccount"`
-	Certificateid   string `json:"CertificateId"`
-	Customerid      string `json:"CustomerId"`
-	Corpname        string `json:"CorpName"`
-	Lockremark      string `json:"LockRemark"`
-	Certificatetype string `json:"CertificateType"`
-	Intercustomerid string `json:"InterCustomerId"`
+	FinanceId       string `json:"financeId"`
+	Backaccount     string `json:"backAccount"`
+	Certificateid   string `json:"certificateId"`
+	Customerid      string `json:"customerId"`
+	Corpname        string `json:"corpName"`
+	Lockremark      string `json:"lockRemark"`
+	Certificatetype string `json:"certificateType"`
+	Intercustomerid string `json:"interCustomerId"`
 }
 
 type SelectedInfosAndFinancingApplication struct {
 	UUID                 string             `json:"-"`
-	FinancingApplication FinancingIntention `json:"FinancingApplication"`
+	FinancingApplication FinancingIntention `json:"financingApplication"`
 	Invoice              []InvoiceInfo      `json:"invoice"`
 }
-
-type SelectedInfoToApplication struct {
-	Invoice     []InvoiceInfo        `json:"invoice"`
-	HistoryInfo []TransactionHistory `json:"historyInfo"`
-	PoolInfo    []EnterpoolData      `json:"poolInfo"`
-}
-
 type InvoiceInfo struct {
 	CertificateID   string `json:"certificateId"`
 	CustomerID      string `json:"customerId"`
 	CorpName        string `json:"corpName"`
 	CertificateType string `json:"certificateType"`
 	InterCustomerID string `json:"interCustomerId"`
-	InvoiceNotaxAmt string `json:"InvoiceNotaxAmt"`
-	InvoiceCcy      string `json:"InvoiceCcy"`
-	SellerName      string `json:"SellerName"`
-	InvoiceType     string `json:"InvoiceType"`
-	BuyerName       string `json:"BuyerName"`
-	BuyerUsccode    string `json:"BuyerUsccode"`
-	InvoiceDate     string `json:"InvoiceDate"`
-	SellerUsccode   string `json:"SellerUsccode"`
-	InvoiceCode     string `json:"InvoiceCode"`
-	InvoiceNum      string `json:"InvoiceNum"`
-	CheckCode       string `json:"CheckCode"`
-	InvoiceAmt      string `json:"InvoiceAmt"`
+	InvoiceNotaxAmt string `json:"invoiceNotaxAmt"`
+	InvoiceCcy      string `json:"invoiceCcy"`
+	SellerName      string `json:"sellerName"`
+	InvoiceType     string `json:"invoiceType"`
+	BuyerName       string `json:"buyerName"`
+	BuyerUsccode    string `json:"buyerUsccode"`
+	InvoiceDate     string `json:"invoiceDate"`
+	SellerUsccode   string `json:"sellerUsccode"`
+	InvoiceCode     string `json:"invoiceCode"`
+	InvoiceNum      string `json:"invoiceNum"`
+	CheckCode       string `json:"checkCode"`
+	InvoiceAmt      string `json:"invoiceAmt"`
 	FinancingID     string `json:"-"`
 }
-
-//	type TransactionHistoryData struct {
-//		CustomerGrade   string            `json:"customerGrade"`
-//		CertificateType string            `json:"certificateType"`
-//		InterCustomerID string            `json:"interCustomerId"`
-//		CorpName        string            `json:"corpName"`
-//		FinanceID       string            `json:"financeId"`
-//		CertificateID   string            `json:"certificateId"`
-//		CustomerID      string            `json:"customerId"`
-//		UsedInfos       []Usedinfos       `json:"usedInfos"`
-//		SettleInfos     []Settleinfos     `json:"settleInfos"`
-//		OrderInfos      []Orderinfos      `json:"orderInfos"`
-//		ReceivableInfos []Receivableinfos `json:"receivableInfos"`
-//	}
-// type Enterpool struct {
-// 	DateTimePoint     string              `json:"dateTimePoint"`
-// 	Ccy               string              `json:"ccy"`
-// 	CustomerID        string              `json:"customerId"`
-// 	InterCustomerID   string              `json:"interCustomerId"`
-// 	ReceivableBalance string              `json:"receivableBalance"`
-// 	PlanInfos         []Planinfos         `json:"planInfos"`
-// 	ProviderUsedInfos []Providerusedinfos `json:"ProviderUsedInfos"`
-// }
