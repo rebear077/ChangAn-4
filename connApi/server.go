@@ -52,16 +52,24 @@ type FrontEnd struct {
 	ModifyInvoiceOKChan              chan interface{}
 	ModifyInvoiceWhenFinancingOKChan chan interface{}
 }
+
+type ReturnPackedResponse struct {
+	msg    string
+	result PackedResponse
+	code   string
+}
+
 type PackedResponse struct {
 	Success map[string]uptoChain.ResponseMessage
 	Fail    map[string]uptoChain.ResponseMessage
 }
 
-func NewPackedResponse() *PackedResponse {
-	return &PackedResponse{
-		Success: make(map[string]uptoChain.ResponseMessage),
-		Fail:    make(map[string]uptoChain.ResponseMessage),
-	}
+func NewPackedResponse() *ReturnPackedResponse {
+	return &ReturnPackedResponse{}
+	// return &PackedResponse{
+	// 	Success: make(map[string]uptoChain.ResponseMessage),
+	// 	Fail:    make(map[string]uptoChain.ResponseMessage),
+	// }
 }
 func NewFrontEnd() *FrontEnd {
 	return &FrontEnd{
@@ -123,6 +131,7 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 					f.IssueInvoicemutex.Unlock()
 					<-f.IssueInvoiceOKChan
 					jsonData := NewPackedResponse()
+					// jsonData :=
 					uptoChain.InvoiceMap.Range(func(key, value interface{}) bool {
 						if uuid, ok := key.(string); ok {
 							if uuid == id.String() {
@@ -130,9 +139,13 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.InvoiceMapLock.Unlock()
@@ -205,9 +218,13 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 								for txHash, message := range mapping {
 									message.AddMessage("HistoricalOrder:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.HistoricalOrderMapLock.Unlock()
@@ -224,9 +241,13 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 								for txHash, message := range mapping {
 									message.AddMessage("HistoricalSettle:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.HistoricalSettleMapLock.Unlock()
@@ -243,9 +264,13 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 								for txHash, message := range mapping {
 									message.AddMessage("HistoricalUsed:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.HistoricalUsedMapLock.Unlock()
@@ -263,9 +288,13 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 								for txHash, message := range mapping {
 									message.AddMessage("HistoricalReceivable:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.HistoricalReceivableMapLock.Unlock()
@@ -336,9 +365,13 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 								for txHash, message := range mapping {
 									message.AddMessage("PoolPlan:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.PoolPlanMapLock.Unlock()
@@ -355,9 +388,13 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 								for txHash, message := range mapping {
 									message.AddMessage("PoolUsed:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.PoolUsedMapLock.Unlock()
@@ -434,9 +471,13 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 								for txHash, message := range mapping {
 									message.AddMessage("FinancingApplication:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.FinancingApplicationIssueMapLock.Unlock()
@@ -453,9 +494,13 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 								for txHash, message := range mapping {
 									message.AddMessage("ModifyInvoice:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.ModifyInvoiceMapLock.Unlock()
@@ -532,9 +577,13 @@ func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.R
 								for txHash, message := range mapping {
 									message.AddMessage("ModifyFinancingApplication:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.ModifyFinancingMapLock.Unlock()
@@ -551,9 +600,13 @@ func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.R
 								for txHash, message := range mapping {
 									message.AddMessage("ModifyFinancingAndInvoice:")
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.ModifyInvoiceWhenMFAMapLock.Unlock()
@@ -622,9 +675,13 @@ func (f *FrontEnd) HandleUpdateCollectionAccount(writer http.ResponseWriter, req
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.UpdateAndLockAccountMapLock.Unlock()
@@ -692,9 +749,13 @@ func (f *FrontEnd) HandleLockAccount(writer http.ResponseWriter, request *http.R
 								mapping := value.(map[string]*uptoChain.ResponseMessage)
 								for txHash, message := range mapping {
 									if message.GetWhetherOK() {
-										jsonData.Success[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.Fail[txHash] = *message
+										jsonData.msg = "success"
+										jsonData.code = "SUC000000"
+										jsonData.result.Fail[txHash] = *message
 									}
 								}
 								uptoChain.LockAccountsMapLock.Unlock()

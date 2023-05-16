@@ -52,6 +52,7 @@ var (
 
 type ResponseMessage struct {
 	message string
+	result  string
 	ok      bool
 }
 
