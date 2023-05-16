@@ -492,7 +492,7 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 	}
 }
 
-// 回款信息
+// 更新并锁定回款账户信息
 func invokeUpdateAndLockPushPaymentAccountsHandler(receipt *types.Receipt, err error) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
@@ -547,6 +547,8 @@ func invokeUpdateAndLockPushPaymentAccountsHandler(receipt *types.Receipt, err e
 		})
 	}
 }
+
+// 锁定回款账户信息
 func invokeLockPaymentAccountsHandler(receipt *types.Receipt, err error) {
 	if err != nil {
 		fmt.Printf("%v\n", err)
