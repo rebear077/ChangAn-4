@@ -353,7 +353,6 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 						logrus.Fatalf("newChannelMessage error: %v", err)
 					}
 					messages.UUID = id.String()
-					fmt.Println(".....", messages)
 					f.EnterpoolDatamutex.Lock()
 					f.EnterpoolDataPool[id.String()] = messages
 					f.EnterpoolDatamutex.Unlock()

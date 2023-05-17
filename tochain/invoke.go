@@ -119,7 +119,7 @@ func invokeUpdateSupplierFinancingApplicationHandler(receipt *types.Receipt, err
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		ModifyFinancingMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -187,7 +187,7 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		InvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -253,7 +253,8 @@ func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receip
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = message
+		packedMessage.message = "fail"
+		packedMessage.result = message
 		ModifyInvoiceMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
 			ModifyInvoiceMapLock.Lock()
@@ -319,7 +320,7 @@ func invokeIssueHistoricalUsedInformationHandler(receipt *types.Receipt, err err
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		HistoricalUsedMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -386,7 +387,7 @@ func invokeIssueHistoricalSettleInformationHandler(receipt *types.Receipt, err e
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		HistoricalSettleMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -455,7 +456,7 @@ func invokeIssueHistoricalOrderInformationHandler(receipt *types.Receipt, err er
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		HistoricalOrderMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -523,7 +524,7 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		HistoricalReceivableMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -538,7 +539,6 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 			return true
 		})
 	} else {
-		fmt.Println("---------")
 		message := "success"
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = true
@@ -589,7 +589,7 @@ func invokeUpdateAndLockPushPaymentAccountsHandler(receipt *types.Receipt, err e
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		UpdateAndLockAccountMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -630,13 +630,13 @@ func invokeLockPaymentAccountsHandler(receipt *types.Receipt, err error) {
 		return
 	}
 	parsed, _ := abi.JSON(strings.NewReader(smartcontract.HostFactoryControllerABI))
-	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "updateAndLockAccounts", receipt)
+	setedLines, err := parseOutput(smartcontract.HostFactoryControllerABI, "lockPushPaymentAccounts", receipt)
 	if err != nil {
 		e = err
 		log.Printf("error when transfer string to int: %v\n", err)
 	}
 	if setedLines == nil || setedLines.Int64() != 1 {
-		ret, err := parsed.UnpackInput("updateAndLockAccounts", common.FromHex(receipt.Input)[4:])
+		ret, err := parsed.UnpackInput("lockPushPaymentAccounts", common.FromHex(receipt.Input)[4:])
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -652,7 +652,7 @@ func invokeLockPaymentAccountsHandler(receipt *types.Receipt, err error) {
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		LockAccountsMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -720,7 +720,7 @@ func invokeIssuePoolPlanInformationHandler(receipt *types.Receipt, err error) {
 		fmt.Println(receipt.BlockHash)
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		PoolPlanMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)
@@ -786,7 +786,7 @@ func invokeIssuePoolUsedInformationHandler(receipt *types.Receipt, err error) {
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		PoolUsedMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)

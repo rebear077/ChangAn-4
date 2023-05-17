@@ -237,9 +237,10 @@ func (p *Promoter) FinancingApplicationInfoWithSelectedInfosHandler() {
 			}
 		}
 		var wg sync.WaitGroup
+		wg.Add(2)
 		go p.financingApplicationInfoWaiter(len(financingInfos), &wg)
 		go p.modifyInvoiceInfoWaiter(len(modifyInvoices), &wg)
-		wg.Done()
+		wg.Wait()
 	}
 }
 
@@ -268,6 +269,7 @@ func (p *Promoter) ModifySupplierFinancingApplicationInfoWithSelectedInfosHandle
 			}
 		}
 		var wg sync.WaitGroup
+		wg.Add(2)
 		go p.modifyFinancingInfoWaiter(len(financingInfos), &wg)
 		go p.modifyInvoiceInfoWhenModifyApplicationWaiter(len(modifyInvoices), &wg)
 		wg.Wait()
