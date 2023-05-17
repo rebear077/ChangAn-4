@@ -59,7 +59,7 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
-		packedMessage.message = "success"
+		packedMessage.message = "fail"
 		packedMessage.result = message
 		FinancingApplicationIssueMap.Range(func(key, value interface{}) bool {
 			uuid := key.(string)

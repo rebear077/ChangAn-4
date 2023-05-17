@@ -65,11 +65,14 @@ type PackedResponse struct {
 }
 
 func NewPackedResponse() *ReturnPackedResponse {
-	return &ReturnPackedResponse{}
-	// return &PackedResponse{
-	// 	Success: make(map[string]uptoChain.ResponseMessage),
-	// 	Fail:    make(map[string]uptoChain.ResponseMessage),
-	// }
+	packed := PackedResponse{
+		Success: make(map[string]uptoChain.ResponseMessage),
+		Fail:    make(map[string]uptoChain.ResponseMessage),
+	}
+	return &ReturnPackedResponse{
+		result: packed,
+	}
+
 }
 func NewFrontEnd() *FrontEnd {
 	return &FrontEnd{
@@ -143,7 +146,7 @@ func (f *FrontEnd) HandleInvoiceInformation(writer http.ResponseWriter, request 
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -222,7 +225,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -245,7 +248,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -268,7 +271,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -292,7 +295,7 @@ func (f *FrontEnd) HandleTransactionHistory(writer http.ResponseWriter, request 
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -369,7 +372,7 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -392,7 +395,7 @@ func (f *FrontEnd) HandleEnterpoolData(writer http.ResponseWriter, request *http
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -475,7 +478,7 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -498,7 +501,7 @@ func (f *FrontEnd) HandleFinancingIntentionWithSelectedInfos(writer http.Respons
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -581,7 +584,7 @@ func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.R
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -604,7 +607,7 @@ func (f *FrontEnd) HandleModifyFinancingIntentionWithSelectedInfos(writer http.R
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -679,7 +682,7 @@ func (f *FrontEnd) HandleUpdateCollectionAccount(writer http.ResponseWriter, req
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
@@ -753,7 +756,7 @@ func (f *FrontEnd) HandleLockAccount(writer http.ResponseWriter, request *http.R
 										jsonData.code = "SUC000000"
 										jsonData.result.Success[txHash] = *message
 									} else {
-										jsonData.msg = "success"
+										jsonData.msg = "fail to upload messages to blockchain"
 										jsonData.code = "SUC000000"
 										jsonData.result.Fail[txHash] = *message
 									}
