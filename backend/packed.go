@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	receive "github.com/rebear077/changan/connApi"
 	"github.com/sirupsen/logrus"
 )
@@ -13,6 +15,7 @@ func (s *Server) PackedTradeData_InvoiceInfo(invoices map[string]*receive.Invoic
 		for _, invoice := range invoiceList.Invoiceinfos {
 			packedInvoice := packedInvoiceMessage{}
 			tempStr := invoiceList.Certificateid + "," + invoiceList.Customerid + "," + invoiceList.Corpname + "," + invoiceList.Certificatetype + "," + invoiceList.Intercustomerid + "," + invoice.Invoicenotaxamt + "," + invoice.Invoiceccy + "," + invoice.Sellername + "," + invoice.Invoicetype + "," + invoice.Buyername + "," + invoice.Buyerusccode + "," + invoice.Invoicedate + "," + invoice.Sellerusccode + "," + invoice.Invoicecode + "," + invoice.Invoicenum + "," + invoice.Checkcode + "," + invoice.Invoiceamt
+			fmt.Println(tempStr)
 			id := invoiceList.Customerid + ":" + invoice.Invoicedate
 			cipher, encryptionKey, signed, err := s.DataEncryption([]byte(tempStr))
 			checkError(err)

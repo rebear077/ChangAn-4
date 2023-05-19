@@ -1,5 +1,7 @@
 package receive
 
+import "fmt"
+
 // // 签名
 // func sha256withRSASignature(data []byte, keyBytes []byte) (string, error) {
 // 	h := sha256.New()
@@ -50,8 +52,10 @@ func rsaVerySignWithSha256(data []byte, signData string, keyBytes []byte) (bool,
 // 验证勾选的发票正确
 func VerifyInvoice(messages SelectedInfosAndFinancingApplication) bool {
 	flag := messages.FinancingApplication.Customerid
+	fmt.Println("flag: ", flag)
 	for _, invoice := range messages.Invoice {
 		if invoice.CustomerID != flag {
+			fmt.Println("CustomerID: ", invoice.CustomerID)
 			return false
 		}
 	}

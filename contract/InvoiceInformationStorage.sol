@@ -49,6 +49,7 @@ contract InvoiceInformationStorage is Ownable {
     function update(string memory _id, string memory _hash,string memory _owner) public onlyOwner returns(int) {
         Table table = tf.openTable(TABLE_NAME);
         Entry entry = table.newEntry();
+        require(_isOwnerNull(table, _id), "The invoice has been used");
         entry.set("owner",_owner);
         Condition condition = table.newCondition();
         require(_isHashExist(table, _id, _hash), "Hash not exists");
@@ -70,6 +71,11 @@ contract InvoiceInformationStorage is Ownable {
     function _isHashExist(Table _table, string memory _id, string memory _hash) internal view returns(bool) {
         Condition condition = _table.newCondition();
         condition.EQ("hash",_hash);
+        return _table.select(_id, condition).size() != int(0);
+    }
+    function _isOwnerNull(Table _table, string memory _id) internal view returns(bool) {
+        Condition condition = _table.newCondition();
+        condition.EQ("owner","");
         return _table.select(_id, condition).size() != int(0);
     }
     function select(string memory _id) private view returns(Entries _entries){

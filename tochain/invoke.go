@@ -55,7 +55,11 @@ func invokeIssueSupplierFinancingApplicationHandler(receipt *types.Receipt, err 
 		if !ok {
 			logs.Fatalln("解析失败")
 		} else {
-			message = "financeId: " + parseRet[0].(string) + "," + "customerId" + parseRet[1].(string) + ", err: " + e.Error()
+			if e != nil {
+				message = "financeId: " + parseRet[0].(string) + "," + "customerId" + parseRet[1].(string) + ", err: " + e.Error()
+			} else {
+				message = "financeId: " + parseRet[0].(string) + "," + "customerId" + parseRet[1].(string)
+			}
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -115,7 +119,11 @@ func invokeUpdateSupplierFinancingApplicationHandler(receipt *types.Receipt, err
 		if !ok {
 			logs.Fatalln("解析失败")
 		} else {
-			message = "financeId: " + parseRet[0].(string) + "," + "customerId" + parseRet[1].(string) + ", err: " + e.Error()
+			if e != nil {
+				message = "financeId: " + parseRet[0].(string) + "," + "customerId" + parseRet[1].(string) + ", err: " + e.Error()
+			} else {
+				message = "financeId: " + parseRet[0].(string) + "," + "customerId" + parseRet[1].(string)
+			}
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -183,7 +191,12 @@ func invokeIssueInvoiceInformationStorageHandler(receipt *types.Receipt, err err
 			Invoicetype := parseret_1[1]
 			Invoicenum := parseret_1[2]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Invoicedate: " + Invoicedate + ", Invoicetype: " + Invoicetype + ", Invoicenum: " + Invoicenum + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Invoicedate: " + Invoicedate + ", Invoicetype: " + Invoicetype + ", Invoicenum: " + Invoicenum + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Invoicedate: " + Invoicedate + ", Invoicetype: " + Invoicetype + ", Invoicenum: " + Invoicenum
+			}
+
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -249,7 +262,12 @@ func invokeVerifyAndUpdateInvoiceInformationStorageHandler(receipt *types.Receip
 			Customerid := parseret_0[0]
 			Invoicedate := parseret_0[1]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)\
-			message = "Customerid: " + Customerid + ", Invoicedate: " + Invoicedate + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Invoicedate: " + Invoicedate + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Invoicedate: " + Invoicedate
+			}
+
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -316,7 +334,11 @@ func invokeIssueHistoricalUsedInformationHandler(receipt *types.Receipt, err err
 			Tradeyearmonth := parseret_1[0]
 			Financeid := parseret_1[1]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid
+			}
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -383,7 +405,11 @@ func invokeIssueHistoricalSettleInformationHandler(receipt *types.Receipt, err e
 			Tradeyearmonth := parseret_1[0]
 			Financeid := parseret_1[1]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid
+			}
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -452,7 +478,12 @@ func invokeIssueHistoricalOrderInformationHandler(receipt *types.Receipt, err er
 			Tradeyearmonth := parseret_1[0]
 			Financeid := parseret_1[1]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid
+			}
+
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -520,7 +551,12 @@ func invokeIssueHistoricalReceivableInformationHandler(receipt *types.Receipt, e
 			Tradeyearmonth := parseret_1[0]
 			Financeid := parseret_1[1]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", Financeid: " + Financeid
+			}
+
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -585,7 +621,12 @@ func invokeUpdateAndLockPushPaymentAccountsHandler(receipt *types.Receipt, err e
 			Customerid := parseret_0[0]
 			FinanceId := parseret_0[1]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Financeid: " + FinanceId + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Financeid: " + FinanceId + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Financeid: " + FinanceId
+			}
+
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -648,7 +689,12 @@ func invokeLockPaymentAccountsHandler(receipt *types.Receipt, err error) {
 			CustomerId := parseRet[0].(string)
 			FinanceId := parseRet[1].(string)
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + CustomerId + ", Financeid: " + FinanceId + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + CustomerId + ", Financeid: " + FinanceId + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + CustomerId + ", Financeid: " + FinanceId
+			}
+
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
@@ -714,7 +760,12 @@ func invokeIssuePoolPlanInformationHandler(receipt *types.Receipt, err error) {
 			parseret_1 := strings.Split(parseRet[1].(string), ",")
 			Tradeyearmonth := parseret_1[0]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth
+			}
+
 		}
 		fmt.Println(message)
 		fmt.Println(receipt.BlockHash)
@@ -782,7 +833,12 @@ func invokeIssuePoolUsedInformationHandler(receipt *types.Receipt, err error) {
 			parseret_1 := strings.Split(parseRet[1].(string), ",")
 			Tradeyearmonth := parseret_1[0]
 			// message = parseRet[0].(string) + "," + parseRet[1].(string)
-			message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", err: " + e.Error()
+			if e != nil {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth + ", err: " + e.Error()
+			} else {
+				message = "Customerid: " + Customerid + ", Tradeyearmonth: " + Tradeyearmonth
+			}
+
 		}
 		packedMessage := new(ResponseMessage)
 		packedMessage.ok = false
